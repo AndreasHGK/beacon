@@ -1,0 +1,17 @@
+name: "Nix Check"
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - 'README.md'
+    branches:
+      - main
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v25
+    - uses: DeterminateSystems/magic-nix-cache-action@v2
+    - name: Check Nix Flake
+      run: nix flake check -L

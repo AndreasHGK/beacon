@@ -1,0 +1,84 @@
+[workspace]
+resolver = "2"
+members = [
+  "cli",
+  "panel/client",
+  "panel/server",
+  "panel/shared",
+]
+
+# Small release profile for WASM builds.
+[profile.release-small]
+inherits = "release"
+codegen-units = 1
+lto = true
+opt-level = 'z'
+strip = true
+
+[workspace.dependencies]
+# Workspace crates.
+beacon-panel-shared.path = "panel/shared"
+
+# Leptos crates.
+leptos = { version = "0.6", features = [] }
+leptos_meta = { version = "0.6", features = [] }
+leptos_router = { version = "0.6", features = [] }
+leptos_axum = { version = "0.6" }
+
+# Shared external crates.
+axum = "0.7"
+cfg-if = "1"
+console_error_panic_hook = "0.1.7"
+console_log = "1"
+http = "1"
+log = "0.4.20"
+simple_logger = "4.2.0"
+thiserror = "1"
+tokio = { version = "1.33.0", features = ["full"] }
+tower = { version = "0.4.13", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+wasm-bindgen = "=0.2.89"
+
+# Leptos (frontend) metadata.
+# See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
+[[workspace.metadata.leptos]]
+# this name is used for the wasm, js and css file names
+name = "beacon-panel"
+
+# Server-side part of the frontend.
+bin-package = "beacon-panel-server"
+bin-features = []
+bin-default-features = false
+# Served as WASM to the client.
+lib-package = "beacon-panel-client"
+lib-features = []
+lib-default-features = false
+lib-profile-release = "release-small"
+
+# Output settings.
+site-root = "target/site"
+site-pkg-dir = "pkg"
+
+# Tailwind settings.
+tailwind-input-file = "panel/style/main.scss"
+tailwind-config-file = "panel/tailwind.config.js"
+
+# Assets source dir. All files found here will be copied and synchronized to site-root.
+# The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
+#
+# Optional. Env: LEPTOS_ASSETS_DIR.
+assets-dir = "panel/assets"
+
+# The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
+site-addr = "127.0.0.1:3000"
+# The port to use for automatic reload monitoring
+reload-port = 3001
+
+#  The browserlist query used for optimizing the CSS.
+browserquery = "defaults"
+
+# Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
+watch = false
+
+# The environment Leptos will run in, usually either "DEV" or "PROD"
+env = "DEV"

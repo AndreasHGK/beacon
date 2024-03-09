@@ -1,0 +1,47 @@
+name: "Publish Containers"
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v25
+      - id: set-matrix
+        name: Generate Matrix
+        run: |
+          set -Eeu
+          matrix="$(nix eval --json ".#lib.$(nix eval --impure --expr "builtins.currentSystem").matrix")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
+    env:
+      REGISTRY: "ghcr.io"
+      REGISTRY_USER: ${{ github.repository_owner }}
+      REGISTRY_KEY: ${{ secrets.GITHUB_TOKEN }}
+      NAMESPACE: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v25
+    - uses: DeterminateSystems/magic-nix-cache-action@v2
+    - name: Install Skopeo
+      run: sudo apt-get update -y && sudo apt-get install -y skopeo
+    - name: Build Container
+      run: nix build -L ".#${{ matrix.container }}-container"
+    - name: Publish Container
+      run: |
+        # Push with both the 'latest' tag and the tag of the commit.
+        for PUSH_TAG in latest $TAG
+        do
+          skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_KEY" "docker-archive://$(readlink result)" "docker://$REGISTRY/${NAMESPACE,,}/${{ matrix.container }}:$PUSH_TAG"
+        done

@@ -1,0 +1,10 @@
+.idea/
+.fleet/
+
+.envrc
+.direnv/
+/.pre-commit-config.yaml
+
+# Output dirs
+target/
+result
