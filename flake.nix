@@ -131,10 +131,9 @@
             binaryen
             # Build tool for SSR leptos applications.
             cargo-leptos
-            # Compile `.scss` files.
-            sass
             # Enable tailwind support in the project.
             tailwindcss
+            pkg-config
           ];
           # By default, `--locked` would be appended, which does not work with cargo-leptos.
           cargoExtraArgs = "";
