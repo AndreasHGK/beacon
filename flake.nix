@@ -69,26 +69,6 @@
         inherit src;
         inherit (workspaceName) pname version;
       };
-      # Also pre-build the needed WASM dependencies.
-      #
-      # We use the workspaceNativeDeps as input so that the resulting
-      # workspaceWasmDeps has both. It would be ideal to do this in parallel
-      # but this adds the extra complexity of manually merging of both target
-      # artifacts.
-      workspaceWasmDeps = (let
-        pname = workspaceName.pname + "-wasm";
-      in
-        craneLib.buildDepsOnly {
-          inherit src pname;
-          inherit (workspaceName) version;
-          cargoArtifacts = workspaceNativeDeps;
-          cargoExtraArgs = "--profile release-small -p beacon-panel-client --target wasm32-unknown-unknown";
-
-          cargoCheckCommand = "cargo check";
-          cargoBuildCommand = "cargo build";
-          cargoTestCommand = "cargo test";
-        })
-      .overrideAttrs (_old: {cargoArtifacts = workspaceNativeDeps;});
 
       # Local programs.
       programs = {
@@ -125,7 +105,7 @@
         craneLib.buildPackage {
           inherit src pname version;
 
-          cargoArtifacts = workspaceWasmDeps;
+          cargoArtifacts = workspaceNativeDeps;
           nativeBuildInputs = with pkgs; [
             # Used to optimise WASM.
             binaryen
@@ -206,7 +186,7 @@
           cargo-clippy = craneLib.cargoClippy {
             inherit src;
             inherit (workspaceName) pname version;
-            cargoArtifacts = workspaceWasmDeps;
+            cargoArtifacts = workspaceNativeDeps;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
           };
 
