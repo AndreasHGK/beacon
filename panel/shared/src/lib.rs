@@ -2,6 +2,11 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
+use crate::download::Download;
+
+pub mod download;
+pub mod file;
+
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -30,6 +35,7 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="" view=HomePage/>
+                    <Route path="/files/:file_id/:name" view=Download/>
                 </Routes>
             </main>
         </Router>

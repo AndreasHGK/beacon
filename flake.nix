@@ -52,12 +52,14 @@
       # - All `.js` files
       # - All `.css` and `.scss` files
       # - `panel/assets`
+      # - `.sqlx/`
       src = let
         filter = path: type:
           (craneLib.filterCargoSources path type)
           || (builtins.match ".*\\.js$" path != null)
           || (builtins.match ".*\\.s?css$" path != null)
-          || (builtins.match "panel/assets.*" path != null);
+          || (builtins.match ".*/panel/assets/.*" path != null)
+          || (builtins.match ".*/.sqlx/.*" path != null);
       in
         lib.cleanSourceWith {
           src = craneLib.path ./.;
@@ -68,6 +70,13 @@
       workspaceNativeDeps = craneLib.buildDepsOnly {
         inherit src;
         inherit (workspaceName) pname version;
+
+        nativeBuildInputs = with pkgs; [
+          # Used to find dependencies while building.
+          pkg-config
+          # SSL support.
+          openssl
+        ];
       };
 
       # Local programs.
@@ -84,6 +93,8 @@
 
             cargoArtifacts = workspaceNativeDeps;
             cargoExtraArgs = "-p ${pname}";
+
+            inherit (workspaceNativeDeps) nativeBuildInputs buildInputs;
 
             doCheck = false;
           };
@@ -106,15 +117,21 @@
           inherit src pname version;
 
           cargoArtifacts = workspaceNativeDeps;
-          nativeBuildInputs = with pkgs; [
-            # Used to optimise WASM.
-            binaryen
-            # Build tool for SSR leptos applications.
-            cargo-leptos
-            # Enable tailwind support in the project.
-            tailwindcss
-            pkg-config
-          ];
+
+          nativeBuildInputs = with pkgs;
+            [
+              # Used to optimise WASM.
+              binaryen
+              # Build tool for SSR leptos applications.
+              cargo-leptos
+              # Enable tailwind support in the project.
+              tailwindcss
+              # Command line interface for sqlx.
+              sqlx-cli
+            ]
+            ++ workspaceNativeDeps.nativeBuildInputs;
+          inherit (workspaceNativeDeps) buildInputs;
+
           # By default, `--locked` would be appended, which does not work with cargo-leptos.
           cargoExtraArgs = "";
           buildPhaseCargoCommand = "cargo leptos build --release -vvv";
@@ -165,7 +182,16 @@
         // services
         // programs;
 
-      checks =
+      checks = let
+        targets =
+          [
+            workspaceNativeDeps
+          ]
+          ++ (builtins.attrValues services)
+          ++ (builtins.attrValues programs);
+        nativeBuildInputs = builtins.map (v: v.nativeBuildInputs) targets;
+        buildInputs = builtins.map (v: v.buildInputs) targets;
+      in
         {
           # Checks that are run when trying to commit. If one or more checks fail,
           # the commit is aborted.
@@ -188,6 +214,8 @@
             inherit (workspaceName) pname version;
             cargoArtifacts = workspaceNativeDeps;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+
+            inherit nativeBuildInputs buildInputs;
           };
 
           # Check cargo docs.
@@ -195,28 +223,43 @@
             inherit src;
             inherit (workspaceName) pname version;
             cargoArtifacts = workspaceNativeDeps;
+
+            inherit nativeBuildInputs buildInputs;
+
+            # We only need the checks, not the artifacts. This significantly reduces the time the
+            # fixupPhase takes.
+            installPhase = ''
+              mkdir -p $out
+            '';
           };
 
           # Check formatting
           cargo-fmt = craneLib.cargoFmt {
             inherit src;
             inherit (workspaceName) pname version;
+
+            inherit nativeBuildInputs buildInputs;
           };
 
           # Run tests with cargo-nextest
-          cargo-nextest = craneLib.cargoNextest {
+          cargo-test = craneLib.cargoTest {
             inherit src;
             inherit (workspaceName) pname version;
             cargoArtifacts = workspaceNativeDeps;
-            partitions = 1;
-            partitionType = "count";
+
+            inherit nativeBuildInputs buildInputs;
           };
         }
         // services
         // programs;
 
       devShells.default = with pkgs;
-        pkgs.mkShell {
+        pkgs.mkShell (let
+          # Include rust analyzer into the dev toolchain.
+          devToolchain = toolchain.override {
+            extensions = ["rust-analyzer" "rust-src"];
+          };
+        in {
           inherit (self.checks.${system}.pre-commit-check) shellHook;
 
           # Take the inputs from the packages.
@@ -225,10 +268,8 @@
             ++ [panel-unwrapped];
 
           packages = [
-            # Add rust toolchain and make sure it has rust-analyzer.
-            (toolchain.override {
-              extensions = ["rust-analyzer" "rust-src"];
-            })
+            # Add development rust toolchain.
+            devToolchain
             # Language Servers.
             vscode-langservers-extracted
             # Rust test runner (based on `cargo test`).
@@ -242,7 +283,9 @@
               ${gzip}/bin/gunzip --stdout $1 > /tmp/image.tar && ${dive}/bin/dive docker-archive:///tmp/image.tar
             '')
           ];
-        };
+
+          RUST_SRC_PATH = "${devToolchain}/lib/rustlib/src/rust/library";
+        });
 
       lib = {
         # Matrix used for CI release pipeline.

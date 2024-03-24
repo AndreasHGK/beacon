@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::{header, HeaderValue};
 use axum::response::Response as AxumResponse;
 use axum::{
@@ -13,7 +15,7 @@ use tower_http::services::ServeDir;
 
 pub async fn file_and_error_handler(
     uri: Uri,
-    State(options): State<LeptosOptions>,
+    State(options): State<Arc<LeptosOptions>>,
     req: Request<Body>,
 ) -> AxumResponse {
     let root = options.site_root.clone();
@@ -27,7 +29,7 @@ pub async fn file_and_error_handler(
         res.into_response()
     } else {
         let handler =
-            leptos_axum::render_app_to_stream(options.to_owned(), move || view! { <App/> });
+            leptos_axum::render_app_to_stream(options.as_ref().clone(), move || view! { <App/> });
         handler(req).await.into_response()
     }
 }
