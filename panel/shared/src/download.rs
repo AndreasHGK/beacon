@@ -49,7 +49,7 @@ pub fn Download() -> impl IntoView {
     };
 
     view! {
-        <div class="flex justify-center items-center h-screen bg-gray-800">
+        <div class="flex justify-center items-center h-screen">
             <div class="flex flex-col justify-center items-center pb-6">
                 <div class="pb-4">
                     {move || view! {

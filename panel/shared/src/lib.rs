@@ -16,6 +16,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/beacon-panel.css"/>
 
         <Title text="Beacon"/>
+        <Body class="bg-gray-800"/>
 
         <Router fallback=|| {
             // When on the server, return a 404 error.
@@ -30,9 +31,9 @@ pub fn App() -> impl IntoView {
                     response.set_status(StatusCode::NOT_FOUND);
                 }
             }
-            view! { <p>Page not found</p> }.into_view()
+            view! { <p class="text-white">Page not found</p> }.into_view()
         }>
-            <main>
+            <main class="bg-gray-800">
                 <Routes>
                     <Route path="" view=HomePage/>
                     <Route path="/files/:file_id/:name" view=Download/>
@@ -45,11 +46,7 @@ pub fn App() -> impl IntoView {
 /// The home page of the panel.
 #[component]
 fn HomePage() -> impl IntoView {
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
     view! {
-        <h1 class="text-2xl">"Beacon"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <h1 class="text-white text-2xl">"Beacon"</h1>
     }
 }
