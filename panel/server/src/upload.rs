@@ -5,22 +5,26 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use beacon_panel_shared::file::FileId;
+use beacon_panel_shared::server::file::FileDb;
 use futures::TryStreamExt;
 use tokio_util::io::StreamReader;
 
-use crate::file_store::FileStore;
-
 pub async fn handle_upload(
-    State(file_store): State<Arc<FileStore>>,
+    State(file_store): State<Arc<FileDb>>,
     req: Request,
 ) -> Result<Response, StatusCode> {
     log::info!("Received new file!");
 
-    let id = FileId::random();
-    file_store
-        .put(
-            id,
+    let file_name = req
+        .headers()
+        .get("file_name")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("file")
+        .to_string();
+
+    let file = file_store
+        .create(
+            file_name,
             StreamReader::new(req.into_body().into_data_stream().map_err(io::Error::other)),
         )
         .await
@@ -30,8 +34,10 @@ pub async fn handle_upload(
         })?;
 
     Ok(format!(
-        "file {}/files/{id}/file",
-        env::var("EXTERNAL_URL").unwrap() // todo: store in config
+        "{}/files/{}/{}",
+        env::var("EXTERNAL_URL").unwrap(), // todo: store in config
+        file.file_id,
+        file.file_name,
     )
     .into_response())
 }

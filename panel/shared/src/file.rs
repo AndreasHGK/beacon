@@ -5,8 +5,19 @@ use std::{
     sync::Arc,
 };
 
+use chrono::{serde::ts_milliseconds, DateTime, Utc};
 use leptos_router::{IntoParam, ParamsError};
-use serde::{de::Visitor, Deserialize};
+use serde::{de::Visitor, Deserialize, Serialize};
+
+/// Information for a file.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FileInfo {
+    pub file_id: FileId,
+    pub file_name: String,
+    #[serde(with = "ts_milliseconds")]
+    pub upload_date: DateTime<Utc>,
+    pub file_size: u64,
+}
 
 /// A unique identifier for a file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -16,6 +27,11 @@ impl FileId {
     /// Generate a new random file id.
     pub fn random() -> Self {
         Self(rand::random())
+    }
+
+    /// Get the underlying data.
+    pub fn raw(&self) -> u64 {
+        self.0
     }
 }
 
@@ -69,5 +85,14 @@ impl<'de> Deserialize<'de> for FileId {
             }
         }
         deserializer.deserialize_str(V)
+    }
+}
+
+impl Serialize for FileId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{self}"))
     }
 }

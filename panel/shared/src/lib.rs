@@ -6,6 +6,8 @@ use crate::download::Download;
 
 pub mod download;
 pub mod file;
+#[cfg(feature = "ssr")]
+pub mod server;
 
 #[component]
 pub fn App() -> impl IntoView {

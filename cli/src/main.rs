@@ -48,6 +48,21 @@ async fn main() -> anyhow::Result<()> {
         other => return Err(anyhow!("unsupported file type: {other:?}")),
     };
 
+    // Determine the name of the file to be uploaded.
+    let file_name = if command.files.len() == 1 {
+        let mut file_name = file
+            .file_name()
+            .and_then(|v| v.to_str())
+            .unwrap_or("file")
+            .to_string();
+        if is_dir {
+            file_name += ".tar.gz";
+        }
+        file_name
+    } else {
+        "files.tar.gz".to_string()
+    };
+
     let (mut writer, reader) = byte_stream::byte_stream(4096);
 
     // Write all the files into a compressed tar archive.
@@ -73,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
         println!("Uploading file...");
         let resp = reqwest::Client::new()
             .post("http://127.0.0.1:3000/upload")
+            .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
             .send()
             .await
