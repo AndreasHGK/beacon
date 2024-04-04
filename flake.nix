@@ -105,11 +105,11 @@
       panel-unwrapped = let
         pname = "beacon-panel";
         inherit
-          (craneLib.crateNameFromCargoToml {cargoToml = ./panel/shared/Cargo.toml;})
+          (craneLib.crateNameFromCargoToml {cargoToml = ./panel/Cargo.toml;})
           version
           ;
 
-        panel-server = craneLib.crateNameFromCargoToml {cargoToml = ./panel/server/Cargo.toml;};
+        panel-server = craneLib.crateNameFromCargoToml {cargoToml = ./panel/Cargo.toml;};
       in
         # The panel is a bit of a special case: it uses the `cargo leptos` build tool
         # along with both native and WASM dependencies.

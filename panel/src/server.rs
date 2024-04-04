@@ -2,6 +2,9 @@ use std::{env, sync::Arc};
 
 use anyhow::Context;
 use axum::{
+    body::Body,
+    extract::{Request, State},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
@@ -12,10 +15,7 @@ use sqlx::PgPool;
 use crate::{
     app::App,
     server::{
-        api::{
-            download::{file_content, file_info},
-            upload::handle_upload,
-        },
+        api::{download::file_content, upload::handle_upload},
         file::{FileDb, FileStore},
         fileserv::file_and_error_handler,
         state::AppState,
@@ -25,7 +25,32 @@ use crate::{
 mod api;
 pub mod file;
 mod fileserv;
-mod state;
+pub mod state;
+
+async fn server_fn_handler(
+    State(app_state): State<AppState>,
+    request: Request<Body>,
+) -> impl IntoResponse {
+    leptos_axum::handle_server_fns_with_context(
+        move || {
+            provide_context(app_state.clone());
+        },
+        request,
+    )
+    .await
+}
+
+async fn leptos_routes_handler(State(app_state): State<AppState>, req: Request<Body>) -> Response {
+    let handler = leptos_axum::render_route_with_context(
+        app_state.leptos_options.as_ref().clone(),
+        app_state.routes.as_ref().clone(),
+        move || {
+            provide_context(app_state.clone());
+        },
+        App,
+    );
+    handler(req).await.into_response()
+}
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
@@ -62,15 +87,20 @@ pub async fn main() -> anyhow::Result<()> {
 
     let state = AppState {
         leptos_options: Arc::new(leptos_options),
+        routes: Arc::new(routes.clone()),
         database: pool,
         file_store: Arc::new(file_db),
     };
 
     let app = Router::new()
-        .leptos_routes(&state, routes, App)
+        // .leptos_routes(&state, routes, App)
+        .route(
+            "/api/*fn_name",
+            get(server_fn_handler).post(server_fn_handler),
+        )
+        .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .route("/upload", post(handle_upload))
-        .route("/files/:file_id/:file_name/info", get(file_info))
         .route("/files/:file_id/:file_name/content", get(file_content))
         .with_state(state);
 

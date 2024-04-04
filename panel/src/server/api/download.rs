@@ -4,44 +4,12 @@ use axum::{
     body::Body,
     extract::{Path, State},
     http::{HeaderName, StatusCode},
-    response::{IntoResponse, Response},
-    Json,
+    response::Response,
 };
 use log::error;
 use tokio_util::io::ReaderStream;
 
 use crate::{file::FileId, server::FileDb};
-
-pub async fn file_info(
-    State(file_store): State<Arc<FileDb>>,
-    Path((file_id, file_name)): Path<(FileId, String)>,
-) -> Response {
-    let file = match file_store.file_info(file_id).await {
-        Ok(Some(v)) => v,
-        Ok(None) => {
-            return Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(Body::empty())
-                .unwrap();
-        }
-        Err(err) => {
-            error!("Could not get file from file store: {err}");
-            return Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::empty())
-                .unwrap();
-        }
-    };
-
-    if file.file_name != file_name {
-        return Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::empty())
-            .unwrap();
-    }
-
-    Json::from(file).into_response()
-}
 
 pub async fn file_content(
     State(file_store): State<Arc<FileDb>>,
