@@ -5,28 +5,30 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use beacon_panel_shared::{
-    server::file::{FileDb, FileStore},
-    *,
-};
-use fileserv::file_and_error_handler;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use sqlx::PgPool;
 
 use crate::{
-    download::{file_content, file_info},
-    state::AppState,
-    upload::handle_upload,
+    app::App,
+    server::{
+        api::{
+            download::{file_content, file_info},
+            upload::handle_upload,
+        },
+        file::{FileDb, FileStore},
+        fileserv::file_and_error_handler,
+        state::AppState,
+    },
 };
 
-mod download;
+mod api;
+pub mod file;
 mod fileserv;
 mod state;
-mod upload;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+pub async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
@@ -38,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
     .await
     .context("could not connect to database")?;
 
-    sqlx::migrate!("../../migrations")
+    sqlx::migrate!("../migrations")
         .run(&pool)
         .await
         .context("error while migrating database")?;

@@ -1,13 +1,10 @@
+mod download;
+
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-use crate::download::Download;
-
-pub mod download;
-pub mod file;
-#[cfg(feature = "ssr")]
-pub mod server;
+use crate::app::download::Download;
 
 #[component]
 pub fn App() -> impl IntoView {

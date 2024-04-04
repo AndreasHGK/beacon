@@ -2,9 +2,7 @@
 resolver = "2"
 members = [
   "cli",
-  "panel/client",
-  "panel/server",
-  "panel/shared",
+  "panel",
 ]
 
 # Small release profile for WASM builds.
@@ -15,30 +13,6 @@ lto = true
 opt-level = 'z'
 strip = true
 
-[workspace.dependencies]
-# Workspace crates.
-beacon-panel-shared.path = "panel/shared"
-
-# Leptos crates.
-leptos = { version = "0.6", features = [] }
-leptos_meta = { version = "0.6", features = [] }
-leptos_router = { version = "0.6", features = [] }
-leptos_axum = { version = "0.6" }
-
-# Shared external crates.
-axum = "0.7"
-cfg-if = "1"
-console_error_panic_hook = "0.1.7"
-console_log = "1"
-http = "1"
-log = "0.4.20"
-simple_logger = "4.2.0"
-thiserror = "1"
-tokio = { version = "1.33.0", features = ["full"] }
-tower = { version = "0.4.13", features = ["full"] }
-tower-http = { version = "0.5", features = ["full"] }
-wasm-bindgen = "=0.2.89"
-
 # Leptos (frontend) metadata.
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 [[workspace.metadata.leptos]]
@@ -46,12 +20,12 @@ wasm-bindgen = "=0.2.89"
 name = "beacon-panel"
 
 # Server-side part of the frontend.
-bin-package = "beacon-panel-server"
-bin-features = []
+bin-package = "beacon-panel"
+bin-features = ["ssr"]
 bin-default-features = false
 # Served as WASM to the client.
-lib-package = "beacon-panel-client"
-lib-features = []
+lib-package = "beacon-panel"
+lib-features = ["hydrate"]
 lib-default-features = false
 lib-profile-release = "release-small"
 

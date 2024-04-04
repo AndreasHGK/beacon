@@ -7,9 +7,10 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use beacon_panel_shared::{file::FileId, server::file::FileDb};
 use log::error;
 use tokio_util::io::ReaderStream;
+
+use crate::{file::FileId, server::FileDb};
 
 pub async fn file_info(
     State(file_store): State<Arc<FileDb>>,

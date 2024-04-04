@@ -5,9 +5,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use beacon_panel_shared::server::file::FileDb;
 use futures::TryStreamExt;
 use tokio_util::io::StreamReader;
+
+use crate::server::file::FileDb;
 
 pub async fn handle_upload(
     State(file_store): State<Arc<FileDb>>,

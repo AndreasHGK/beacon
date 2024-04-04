@@ -8,10 +8,11 @@ use axum::{
     http::{Request, Response, StatusCode, Uri},
     response::IntoResponse,
 };
-use beacon_panel_shared::App;
 use leptos::*;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
+
+use crate::app::App;
 
 pub async fn file_and_error_handler(
     uri: Uri,

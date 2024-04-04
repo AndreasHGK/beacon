@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use beacon_panel_shared::server::file::FileDb;
 use leptos::LeptosOptions;
 use sqlx::PgPool;
+
+use super::file::FileDb;
 
 /// Combines all different state types into one.
 #[derive(Clone, FromRef)]
