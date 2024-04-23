@@ -93,7 +93,6 @@ pub async fn main() -> anyhow::Result<()> {
     };
 
     let app = Router::new()
-        // .leptos_routes(&state, routes, App)
         .route(
             "/api/*fn_name",
             get(server_fn_handler).post(server_fn_handler),
