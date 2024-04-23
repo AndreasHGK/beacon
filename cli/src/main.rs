@@ -1,11 +1,14 @@
 mod byte_stream;
+mod cert;
 
 use std::{io, path::PathBuf};
 
 use anyhow::{anyhow, Context};
+use cert::generate_certificate;
 use clap::Parser;
 use flate2::{write::GzEncoder, Compression};
-use reqwest::Body;
+use reqwest::{Body, Identity};
+use time::Duration;
 use tokio::{
     fs,
     task::{self, JoinHandle},
@@ -24,6 +27,15 @@ struct Command {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    // Generate a client certificate to use for authentication.
+    let (cert, key_pair) = generate_certificate("localhost", Duration::seconds(60))
+        .context("error generating certificate")?;
+    let ident = {
+        // Include both the private key and the certificate to create the client identity.
+        let pem = cert.pem() + &key_pair.serialize_pem();
+        Identity::from_pem(pem.as_bytes()).context("error creating identity")?
+    };
+
     let command = Command::parse();
 
     if command.files.is_empty() {
@@ -86,7 +98,10 @@ async fn main() -> anyhow::Result<()> {
     // Upload the file while it is being written.
     let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async {
         println!("Uploading file...");
-        let resp = reqwest::Client::new()
+        let resp = reqwest::ClientBuilder::new()
+            .identity(ident)
+            .build()
+            .context("could not build http client")?
             .post("http://127.0.0.1:3000/upload")
             .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
