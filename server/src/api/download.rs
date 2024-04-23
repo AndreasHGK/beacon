@@ -6,10 +6,10 @@ use axum::{
     http::{HeaderName, StatusCode},
     response::Response,
 };
-use log::error;
 use tokio_util::io::ReaderStream;
+use tracing::error;
 
-use crate::{file::FileId, server::FileDb};
+use crate::{file::FileId, FileDb};
 
 pub async fn file_content(
     State(file_store): State<Arc<FileDb>>,

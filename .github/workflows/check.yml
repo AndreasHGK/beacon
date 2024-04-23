@@ -3,15 +3,20 @@ on:
   pull_request:
   push:
     paths-ignore:
-      - 'README.md'
+      - "README.md"
     branches:
       - main
 jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: cachix/install-nix-action@v25
-    - uses: DeterminateSystems/magic-nix-cache-action@v2
-    - name: Check Nix Flake
-      run: nix flake check -L
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v25
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v14
+        with:
+          name: beacon
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Check Nix Flake
+        run: nix flake check -L

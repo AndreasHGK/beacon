@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     utils.url = "github:numtide/flake-utils";
     pre-commit-hooks = {
@@ -13,186 +13,150 @@
     };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    rust-overlay,
-    crane,
-    utils,
-    pre-commit-hooks,
-  }:
-    utils.lib.eachDefaultSystem (system: let
-      inherit (nixpkgs) lib;
-      nixlib = lib;
-      overlays = [(import rust-overlay)];
-      pkgs = import nixpkgs {inherit system overlays;};
+  outputs = { self, nixpkgs, rust-overlay, crane, utils, pre-commit-hooks, }:
+    utils.lib.eachDefaultSystem (system:
+      let
+        inherit (nixpkgs) lib;
+        nixlib = lib;
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
 
-      # General package name/version for the entire workspace.
-      workspaceName = {
-        pname = "beacon";
-        # Use a dummy version.
-        version = "0.0.0";
-      };
-
-      # Use crane to build rust packages.
-      # Also sets the project specific rust toolchain in crane.
-      craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-      # Get the latest stable rust toolchain.
-      toolchain = pkgs.rust-bin.stable.latest.default.override {
-        # We need wasm32 in the toolchain to build the frontend.
-        targets = ["wasm32-unknown-unknown"];
-      };
-
-      # Filtered source used for packages.
-      # Reduces the amount of rebuilds needed, as it tries to detect
-      # changes in any of the resulting files.
-      #
-      # Keeps:
-      # - All rust related files
-      # - All `.js` files
-      # - All `.css` and `.scss` files
-      # - `panel/assets`
-      # - `.sqlx/`
-      src = let
-        filter = path: type:
-          (craneLib.filterCargoSources path type)
-          || (builtins.match ".*\\.js$" path != null)
-          || (builtins.match ".*\\.s?css$" path != null)
-          || (builtins.match ".*/panel/assets/.*" path != null)
-          || (builtins.match ".*/.sqlx/.*" path != null);
-      in
-        lib.cleanSourceWith {
-          src = craneLib.path ./.;
-          inherit filter;
+        # General package name/version for the entire workspace.
+        workspaceName = {
+          pname = "beacon";
+          # Use a dummy version.
+          version = "0.0.0";
         };
 
-      # Pre-build all native workspace dependencies.
-      workspaceNativeDeps = craneLib.buildDepsOnly {
-        inherit src;
-        inherit (workspaceName) pname version;
+        # Use crane to build rust packages.
+        # Also sets the project specific rust toolchain in crane.
+        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+        # Get the latest stable rust toolchain.
+        toolchain = pkgs.rust-bin.stable.latest.default.override {
+          # We need wasm32 in the toolchain to build the frontend.
+          targets = [ "wasm32-unknown-unknown" ];
+        };
 
-        nativeBuildInputs = with pkgs; [
-          # Used to find dependencies while building.
-          pkg-config
-          # SSL support.
-          openssl
-        ];
-      };
+        # See `sources.nix` for more info.
+        sources = import ./sources.nix { inherit lib craneLib; };
 
-      # Local programs.
-      programs = {
-        cli = let
-          inherit
-            (craneLib.crateNameFromCargoToml {cargoToml = ./cli/Cargo.toml;})
-            pname
-            version
-            ;
-        in
-          craneLib.buildPackage {
-            inherit src pname version;
+        # Pre-build dependencies for packages so they can be reused.
+        dependencies = {
+          rust = craneLib.buildDepsOnly {
+            src = sources.rust;
+            inherit (workspaceName) pname version;
 
-            cargoArtifacts = workspaceNativeDeps;
+            nativeBuildInputs = with pkgs; [
+              # Used to find dependencies while building.
+              pkg-config
+              # SSL support.
+              openssl
+            ];
+          };
+        };
+
+        # Local programs.
+        programs = {
+          cli = let
+            inherit (craneLib.crateNameFromCargoToml {
+              cargoToml = ./cli/Cargo.toml;
+            })
+              pname version;
+          in craneLib.buildPackage {
+            src = sources.rust;
+            inherit pname version;
+
+            cargoArtifacts = dependencies.rust;
             cargoExtraArgs = "-p ${pname}";
 
-            inherit (workspaceNativeDeps) nativeBuildInputs buildInputs;
+            inherit (dependencies.rust) nativeBuildInputs buildInputs;
 
             doCheck = false;
           };
-      };
-
-      # First make a non wrapped panel binary by compiling the rust project.
-      # We wrap it later to allow it to always find the site root.
-      panel-unwrapped = let
-        pname = "beacon-panel";
-        inherit
-          (craneLib.crateNameFromCargoToml {cargoToml = ./panel/Cargo.toml;})
-          version
-          ;
-
-        panel-server = craneLib.crateNameFromCargoToml {cargoToml = ./panel/Cargo.toml;};
-      in
-        # The panel is a bit of a special case: it uses the `cargo leptos` build tool
-        # along with both native and WASM dependencies.
-        craneLib.buildPackage {
-          inherit src pname version;
-
-          cargoArtifacts = workspaceNativeDeps;
-
-          nativeBuildInputs = with pkgs;
-            [
-              # Used to optimise WASM.
-              binaryen
-              # Build tool for SSR leptos applications.
-              cargo-leptos
-              # Enable tailwind support in the project.
-              tailwindcss
-              # Command line interface for sqlx.
-              sqlx-cli
-            ]
-            ++ workspaceNativeDeps.nativeBuildInputs;
-          inherit (workspaceNativeDeps) buildInputs;
-
-          # By default, `--locked` would be appended, which does not work with cargo-leptos.
-          cargoExtraArgs = "";
-          buildPhaseCargoCommand = "cargo leptos build --release -vvv";
-          cargoTestCommand = "cargo leptos test --release -vvv";
-          installPhaseCommand = ''
-            mkdir -p $out/bin
-            cp target/release/${panel-server.pname} $out/bin/panel
-            mkdir -p $out/lib
-            cp -r target/site $out/lib/
-          '';
-
-          # Extra check is not needed as we have a separate `cargo nextest` check.
-          doCheck = false;
         };
 
-      # Services for the file share service.
-      # Each of these will also be used to create a docker image output.
-      services = {
-        # We wrap the panel in a shell script that sets the site root to the absolute nix store
-        # path. This way we are sure the binary can always find the site root.
-        panel = pkgs.writeShellScriptBin "panel" ''
-          LEPTOS_SITE_ROOT=${panel-unwrapped}/lib/site ${panel-unwrapped}/bin/panel
-        '';
-      };
+        # Services for the file share service.
+        # Each of these will also be used to create a docker image output.
+        services = {
+          server = let
+            inherit (craneLib.crateNameFromCargoToml {
+              cargoToml = ./server/Cargo.toml;
+            })
+              pname version;
+          in craneLib.buildPackage {
+            src = sources.rust;
+            inherit pname version;
 
-      # Generate a container image for each of the services.
-      containers =
-        lib.attrsets.concatMapAttrs (name: pkg: {
+            cargoArtifacts = dependencies.rust;
+            cargoExtraArgs = "-p ${pname}";
+
+            inherit (dependencies.rust) nativeBuildInputs buildInputs;
+
+            doCheck = false;
+          };
+
+          frontend = pkgs.mkYarnPackage {
+            pname = "beacon-frontend";
+            src = sources.frontend;
+
+            nativeBuildInputs = with pkgs; [ pkg-config yarn ];
+            buildInputs = with pkgs; [ bash nodejs-slim_21 ];
+
+            configurePhase = ''
+              # We can't link as this would for some reason also link the full node modules in
+              # the derivation's output, wasting a significant amount of space in the final
+              # container.
+              cp -r $node_modules node_modules
+            '';
+            buildPhase = ''
+              export HOME=$(mktemp -d)
+              yarn --offline run build
+            '';
+            distPhase = "true";
+            installPhase = ''
+              mkdir -p $out
+              cp -R .next/standalone/. $out
+              mkdir -p $out/.next/static
+              cp -R .next/static/. $out/.next/static
+              cp -R public $out/public
+
+              # Create a binary to be able to easily launch the frontend.
+              mkdir -p $out/bin
+              echo "#! ${pkgs.bash}/bin/bash" >> $out/bin/frontend
+              echo "${pkgs.nodejs-slim_20}/bin/node $out/server.js" >> $out/bin/frontend
+              chmod +x $out/bin/frontend
+            '';
+          };
+        };
+
+        # Generate a container image for each of the services.
+        containers = lib.attrsets.concatMapAttrs (name: pkg: {
           "${name}" = pkgs.dockerTools.buildImage {
             inherit name;
             copyToRoot = pkg;
             tag = "latest";
 
             config = {
-              Cmd = [name];
-              WorkingDir = "/bin/site";
+              Cmd = [ name ];
+              WorkingDir = "/";
             };
           };
-        })
-        services;
-    in rec {
-      formatter = pkgs.alejandra;
+        }) services;
+      in rec {
+        formatter = pkgs.nixfmt;
 
-      # The packages output by this flake is the combination of all programs,
-      # all services and a container for each service (service name prefixed with '-container').
-      packages =
-        (nixlib.attrsets.concatMapAttrs (name: val: {"${name}-container" = val;}) containers)
-        // services
-        // programs;
+        # The packages output by this flake is the combination of all programs,
+        # all services and a container for each service (service name prefixed with '-container').
+        packages = (nixlib.attrsets.concatMapAttrs
+          (name: val: { "${name}-container" = val; }) containers) // services
+          // programs;
 
-      checks = let
-        targets =
-          [
-            workspaceNativeDeps
-          ]
-          ++ (builtins.attrValues services)
-          ++ (builtins.attrValues programs);
-        nativeBuildInputs = builtins.map (v: v.nativeBuildInputs) targets;
-        buildInputs = builtins.map (v: v.buildInputs) targets;
-      in
-        {
+        checks = let
+          targets = [ dependencies.rust ] ++ (builtins.attrValues services)
+            ++ (builtins.attrValues programs);
+          nativeBuildInputs = builtins.map (v: v.nativeBuildInputs) targets;
+          buildInputs = builtins.map (v: v.buildInputs) targets;
+        in {
           # Checks that are run when trying to commit. If one or more checks fail,
           # the commit is aborted.
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
@@ -201,7 +165,7 @@
               # Github actions hooks.
               actionlint.enable = true;
               # Nix hooks.
-              alejandra.enable = true;
+              nixfmt.enable = true;
               statix.enable = true;
               # Rust hooks.
               rustfmt.enable = true;
@@ -210,9 +174,9 @@
 
           # Run clippy.
           cargo-clippy = craneLib.cargoClippy {
-            inherit src;
+            src = sources.rust;
             inherit (workspaceName) pname version;
-            cargoArtifacts = workspaceNativeDeps;
+            cargoArtifacts = dependencies.rust;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
 
             inherit nativeBuildInputs buildInputs;
@@ -220,9 +184,9 @@
 
           # Check cargo docs.
           cargo-doc = craneLib.cargoDoc {
-            inherit src;
+            src = sources.rust;
             inherit (workspaceName) pname version;
-            cargoArtifacts = workspaceNativeDeps;
+            cargoArtifacts = dependencies.rust;
 
             inherit nativeBuildInputs buildInputs;
 
@@ -235,7 +199,7 @@
 
           # Check formatting
           cargo-fmt = craneLib.cargoFmt {
-            inherit src;
+            src = sources.rust;
             inherit (workspaceName) pname version;
 
             inherit nativeBuildInputs buildInputs;
@@ -243,56 +207,91 @@
 
           # Run tests with cargo-nextest
           cargo-test = craneLib.cargoTest {
-            inherit src;
+            src = sources.rust;
             inherit (workspaceName) pname version;
-            cargoArtifacts = workspaceNativeDeps;
+            cargoArtifacts = dependencies.rust;
 
             inherit nativeBuildInputs buildInputs;
           };
-        }
-        // services
-        // programs;
 
-      devShells.default = with pkgs;
-        pkgs.mkShell (let
-          # Include rust analyzer into the dev toolchain.
-          devToolchain = toolchain.override {
-            extensions = ["rust-analyzer" "rust-src"];
+          # Ensure the frontend remains formatted.
+          frontend-fmt = lib.mkCheck {
+            name = "frontend-fmt";
+            shellScript = ''
+              cd ${sources.frontend}
+
+              ${pkgs.nodePackages.prettier}/bin/prettier -c --config .prettierrc.json .
+            '';
           };
-        in {
-          inherit (self.checks.${system}.pre-commit-check) shellHook;
+        } // services // programs;
 
-          # Take the inputs from the packages.
-          inputsFrom =
-            (builtins.attrValues packages)
-            ++ [panel-unwrapped];
+        devShells.default = with pkgs;
+          pkgs.mkShell (let
+            # Include rust analyzer into the dev toolchain.
+            devToolchain = toolchain.override {
+              extensions = [ "rust-analyzer" "rust-src" ];
+            };
+          in {
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
 
-          packages = [
-            # Add development rust toolchain.
-            devToolchain
-            # Language Servers.
-            vscode-langservers-extracted
-            # Rust test runner (based on `cargo test`).
-            cargo-nextest
-            # Docker image inspector.
-            dive
-            # Script to automatically inspect the container image specified.
-            #
-            # Taken from: https://fasterthanli.me/series/building-a-rust-service-with-nix/part-11
-            (pkgs.writeShellScriptBin "inspect-container" ''
-              ${gzip}/bin/gunzip --stdout $1 > /tmp/image.tar && ${dive}/bin/dive docker-archive:///tmp/image.tar
-            '')
-          ];
+            # Take the inputs from the packages.
+            inputsFrom = builtins.attrValues packages;
 
-          RUST_SRC_PATH = "${devToolchain}/lib/rustlib/src/rust/library";
-        });
+            packages = [
+              # Add development rust toolchain.
+              devToolchain
+              # Docker image inspector.
+              dive
+              # JS/TS language server.
+              nodePackages.typescript-language-server
+              # NodeJS.
+              nodejs_21
+              # CLI for the sqlx library and database migrations.
+              sqlx-cli
+              # Language Servers.
+              vscode-langservers-extracted
+              # Frontend package manager.
+              yarn
+              # Script to automatically inspect the container image specified.
+              #
+              # Taken from: https://fasterthanli.me/series/building-a-rust-service-with-nix/part-11
+              (pkgs.writeShellScriptBin "inspect-container" ''
+                ${gzip}/bin/gunzip --stdout $1 > /tmp/image.tar && ${dive}/bin/dive docker-archive:///tmp/image.tar
+              '')
+            ];
 
-      lib = {
-        # Matrix used for CI release pipeline.
-        matrix.include =
-          builtins.map
-          (container: {inherit container;})
-          (builtins.attrNames containers);
-      };
-    });
+            RUST_SRC_PATH = "${devToolchain}/lib/rustlib/src/rust/library";
+          });
+
+        apps = let
+          # Helper function that turns a set with paths of derivations into a set of apps.
+          mapToApp = builtins.mapAttrs (name: app: {
+            program = "${app}/bin/${name}";
+            type = "app";
+          });
+        in mapToApp {
+          # Format the entire codebase.
+          format = pkgs.writeShellScriptBin "format" ''
+            echo "Formatting rust code ..."
+            ${toolchain}/bin/cargo fmt
+            echo "Formatting javascript code ..."
+            ${pkgs.nodePackages.prettier}/bin/prettier -w --config ${
+              ./.
+            }/frontend/.prettierrc.json .
+          '';
+        };
+
+        lib = {
+          # Matrix used for CI release pipeline.
+          matrix.include = builtins.map (container: { inherit container; })
+            (builtins.attrNames containers);
+          # Makes a check from a shell script.
+          mkCheck = { name, shellScript, }:
+            pkgs.runCommand name { } (''
+              # Ensure there is ouput for the derivation (nix will complain otherwise).
+              mkdir -p $out
+            '' + shellScript);
+        };
+
+      });
 }

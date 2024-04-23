@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
     let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async {
         println!("Uploading file...");
         let resp = reqwest::Client::new()
-            .post("http://127.0.0.1:3000/upload")
+            .post("http://127.0.0.1:3000/files")
             .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
             .send()

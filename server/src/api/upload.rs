@@ -7,14 +7,15 @@ use axum::{
 };
 use futures::TryStreamExt;
 use tokio_util::io::StreamReader;
+use tracing::{error, info};
 
-use crate::server::file::FileDb;
+use crate::file::FileDb;
 
 pub async fn handle_upload(
     State(file_store): State<Arc<FileDb>>,
     req: Request,
 ) -> Result<Response, StatusCode> {
-    log::info!("Received new file!");
+    info!("Received new file!");
 
     let file_name = req
         .headers()
@@ -30,7 +31,7 @@ pub async fn handle_upload(
         )
         .await
         .map_err(|err| {
-            log::error!("Could not store file: {err:?}");
+            error!("Could not store file: {err:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
