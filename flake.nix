@@ -46,12 +46,14 @@
             src = sources.rust;
             inherit (workspaceName) pname version;
 
-            nativeBuildInputs = with pkgs; [
-              # Used to find dependencies while building.
-              pkg-config
-              # SSL support.
-              openssl
-            ];
+            nativeBuildInputs = with pkgs;
+              [
+                # Used to find dependencies while building.
+                pkg-config
+                # SSL support.
+                openssl
+              ] ++ lib.optionals pkgs.stdenv.isDarwin
+              [ darwin.apple_sdk.frameworks.SystemConfiguration ];
           };
         };
 
