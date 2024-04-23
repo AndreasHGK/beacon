@@ -5,7 +5,7 @@ use std::{io, path::PathBuf};
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use flate2::{write::GzEncoder, Compression};
-use reqwest::Body;
+use reqwest::{Body, StatusCode};
 use tokio::{
     fs,
     task::{self, JoinHandle},
@@ -87,12 +87,20 @@ async fn main() -> anyhow::Result<()> {
     let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async {
         println!("Uploading file...");
         let resp = reqwest::Client::new()
-            .post("http://127.0.0.1:3000/files")
+            .post("http://localhost:2000/api/files")
             .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
             .send()
             .await
             .context("could make request")?;
+        if resp.status() != StatusCode::OK {
+            eprintln!("Server returned with status code {}", resp.status());
+            eprintln!(
+                "Error body: {}",
+                resp.text().await.context("could not error response")?,
+            );
+            return Ok(());
+        }
         println!(
             "File was uploaded successfully!\nUse the following link to share it: {}",
             resp.text().await.context("could not read response")?

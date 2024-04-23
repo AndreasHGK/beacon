@@ -279,6 +279,25 @@
               ./.
             }/frontend/.prettierrc.json .
           '';
+          # Run services used in development.
+          dev = pkgs.writeShellApplication {
+            name = "dev";
+
+            runtimeInputs = with pkgs; [
+              caddy
+              cargo-watch
+              nodePackages.yarn
+              nss
+              openssl
+              toolchain
+            ];
+
+            text = ''
+              cargo-watch -- cargo run --bin beacon-server &
+              (cd frontend && yarn run dev &)
+              caddy run --envfile .env --config ./nix/Caddyfile
+            '';
+          };
         };
 
         lib = {

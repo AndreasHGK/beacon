@@ -65,9 +65,9 @@ pub async fn main() -> anyhow::Result<()> {
     };
 
     let app = Router::new()
-        .route("/files", post(handle_upload))
-        .route("/files/:file_id/:file_name", get(file_info))
-        .route("/files/:file_id/:file_name/content", get(file_content))
+        .route("/api/files", post(handle_upload))
+        .route("/api/files/:file_id/:file_name", get(file_info))
+        .route("/api/files/:file_id/:file_name/content", get(file_content))
         .with_state(state);
 
     info!("Listening on `http://{}`.", &bind_addr);

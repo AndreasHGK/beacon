@@ -1,0 +1,7 @@
+{$EXTERNAL_URL} {
+    handle /api/* {
+        reverse_proxy {$API_ROOT}
+    }
+
+    reverse_proxy {$FRONTEND_ROOT}
+}
