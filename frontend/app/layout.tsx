@@ -4,6 +4,7 @@ import "./globals.css"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/main-nav"
+import { Toaster } from "@/components/ui/sonner"
 
 const fontSans = localFont({
   src: "./fonts/inter.ttf",
@@ -37,6 +38,7 @@ export default function RootLayout({
           <MainNav />
           {children}
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   )

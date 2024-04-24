@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 
 export function MainNav() {
@@ -11,12 +11,18 @@ export function MainNav() {
         </Link>
         <div className="flex flex-row w-full pr-8 justify-end self-stretch items-center gap-1">
           <div className="flex flex-row gap-1">
-            <Button variant="outline">
-              <p>Register</p>
-            </Button>
-            <Button variant="outline">
-              <p>Log in</p>
-            </Button>
+            <Link
+              href="/register"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Register
+            </Link>
+            <Link
+              href="/login"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Log in
+            </Link>
           </div>
           <ModeToggle />
         </div>
