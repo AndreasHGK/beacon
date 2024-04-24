@@ -6,17 +6,25 @@ use axum::{
     Router,
 };
 use sqlx::PgPool;
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    api::{download::file_content, file_info::file_info, upload::handle_upload},
+    api::{
+        authenticate::authenticate,
+        download::file_content,
+        file_info::file_info,
+        upload::handle_upload,
+        users::{create_user, get_user, get_username},
+    },
     file::{FileDb, FileStore},
     state::AppState,
 };
 
 mod api;
+mod error;
 mod file;
+mod session;
 mod state;
 
 #[tokio::main]
@@ -68,6 +76,12 @@ pub async fn main() -> anyhow::Result<()> {
         .route("/api/files", post(handle_upload))
         .route("/api/files/:file_id/:file_name", get(file_info))
         .route("/api/files/:file_id/:file_name/content", get(file_content))
+        .route("/api/sessions", post(authenticate))
+        .route("/api/users", post(create_user))
+        .route("/api/users/:user_id", get(get_user))
+        .route("/api/usernames/:username", get(get_username))
+        // Provides an API to easily read or modify cookies.
+        .layer(tower_cookies::CookieManagerLayer::new())
         .with_state(state);
 
     info!("Listening on `http://{}`.", &bind_addr);

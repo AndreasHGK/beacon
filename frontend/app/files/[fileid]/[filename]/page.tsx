@@ -1,5 +1,6 @@
 import { FilePreview } from "@/components/file-preview"
 import { buttonVariants } from "@/components/ui/button"
+import { serverFetch } from "@/lib/server-fetch"
 import { Download } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -9,8 +10,8 @@ export default async function File({
 }: {
   params: { fileid: string; filename: string }
 }) {
-  const res = await fetch(
-    `http://localhost:4000/api/files/${params.fileid}/${params.filename}`
+  const res = await serverFetch(
+    `/api/files/${params.fileid}/${params.filename}`
   )
   if (res.status == 404 || res.status == 400) {
     return notFound()

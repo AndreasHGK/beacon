@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { hasSession } from "@/lib/sessions"
+import { buttonVariants } from "@/components/ui/button"
 
 export function MainNav() {
   return (
@@ -9,15 +10,36 @@ export function MainNav() {
         <Link href="/" className="text-2xl font-semibold pl-8 pr-8">
           Beacon
         </Link>
-        <div className="flex flex-row w-full pr-8 justify-end self-stretch items-center gap-1">
-          <div className="flex flex-row gap-1">
-            <Button variant="outline">
-              <p>Register</p>
-            </Button>
-            <Button variant="outline">
-              <p>Log in</p>
-            </Button>
-          </div>
+        <div className="flex flex-row w-full pr-8 justify-end self-stretch items-center gap-2">
+          {(() => {
+            if (hasSession()) {
+              return (
+                <Link
+                  href="/panel"
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  Dashboard
+                </Link>
+              )
+            } else {
+              return (
+                <div className="flex flex-row gap-2">
+                  <Link
+                    href="/login"
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/register"
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Register
+                  </Link>
+                </div>
+              )
+            }
+          })()}
           <ModeToggle />
         </div>
       </div>

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select exists(select * from files where file_id=$1 and file_name=$2)",
+  "query": "select exists(select * from users where username = $1)",
   "describe": {
     "columns": [
       {
@@ -11,7 +11,6 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text"
       ]
     },
@@ -19,5 +18,5 @@
       null
     ]
   },
-  "hash": "36e40c8af7e8c14c93d4bb4bdaace37d0362310d0e275716b7472db22de6bef3"
+  "hash": "ba597f9ef97326aa0f71835d5e96c460ae915fc26726a1f17bf83bf397d30a63"
 }

@@ -1,0 +1,4 @@
+flake.lock
+.sqlx/
+frontend/.next/
+target/

@@ -40,7 +40,7 @@ impl Write for ByteWriter {
 
         let remaining_buffer_cap = self.buffer.capacity() - self.buffer.len();
         let write_amount = remaining_buffer_cap.min(original_buf.len());
-        self.buffer.write(&original_buf[..write_amount]).ok();
+        let write_amount = self.buffer.write(&original_buf[..write_amount])?;
 
         let buf = &original_buf[write_amount..];
         // There were more bytes in `buf` than can fit in our own buffer. First flush the now

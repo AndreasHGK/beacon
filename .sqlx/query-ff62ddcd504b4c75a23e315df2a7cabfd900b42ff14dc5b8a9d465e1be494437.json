@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select exists(select * from files where file_id=$1 and file_name=$2)",
+  "query": "select exists(select * from sessions where token = $1)",
   "describe": {
     "columns": [
       {
@@ -11,13 +11,12 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Text"
+        "Bytea"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "36e40c8af7e8c14c93d4bb4bdaace37d0362310d0e275716b7472db22de6bef3"
+  "hash": "ff62ddcd504b4c75a23e315df2a7cabfd900b42ff14dc5b8a9d465e1be494437"
 }

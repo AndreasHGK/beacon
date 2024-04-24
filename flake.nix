@@ -171,6 +171,16 @@
               statix.enable = true;
               # Rust hooks.
               rustfmt.enable = true;
+              # JS hooks.
+              prettier = {
+                enable = true;
+                settings = {
+                  check = false;
+                  list-different = true;
+                  write = false;
+                  configPath = "frontend/.prettierrc.json";
+                };
+              };
             };
           };
 
@@ -295,7 +305,9 @@
             ];
 
             text = ''
-              cargo-watch -- cargo run --bin beacon-server &
+              # Kill all subprocesses on exit.
+              trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
+              (cargo-watch -- cargo run --bin beacon-server) &
               (cd frontend && yarn run dev &)
               caddy run --envfile .env --config ./nix/Caddyfile
             '';
