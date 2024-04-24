@@ -171,6 +171,16 @@
               statix.enable = true;
               # Rust hooks.
               rustfmt.enable = true;
+              # JS hooks.
+              prettier = {
+                enable = true;
+                settings = {
+                  check = false;
+                  list-different = true;
+                  write = false;
+                  configPath = "frontend/.prettierrc.json";
+                };
+              };
             };
           };
 
