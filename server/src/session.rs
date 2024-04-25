@@ -25,7 +25,7 @@ pub struct SessionInfo {
 /// An authentication token to allow a user to prove to the backend they are authenticated.
 ///
 /// The token is 256 bits. 128 bits is the minimum recommended by OWASP:
-/// https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-length
+/// <https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-length>
 pub struct SessionToken([u8; 32]);
 
 impl SessionToken {

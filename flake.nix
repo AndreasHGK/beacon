@@ -305,7 +305,9 @@
             ];
 
             text = ''
-              cargo-watch -- cargo run --bin beacon-server &
+              # Kill all subprocesses on exit.
+              trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
+              (cargo-watch -- cargo run --bin beacon-server) &
               (cd frontend && yarn run dev &)
               caddy run --envfile .env --config ./nix/Caddyfile
             '';
