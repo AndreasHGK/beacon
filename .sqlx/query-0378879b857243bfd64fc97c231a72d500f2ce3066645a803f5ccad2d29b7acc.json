@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        insert into users (user_id, username, password_hash) values(gen_random_uuid(), $1, $2)\n            returning user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0378879b857243bfd64fc97c231a72d500f2ce3066645a803f5ccad2d29b7acc"
+}

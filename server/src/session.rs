@@ -8,6 +8,8 @@ use chrono::{serde::ts_milliseconds, DateTime, Duration, Utc};
 use hex::{FromHex, FromHexError};
 use serde::{de::Visitor, Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
+use time::OffsetDateTime;
+use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
 /// Information about a session.
@@ -87,6 +89,26 @@ pub async fn create_session(
         valid_until: expires_on,
         token,
     })
+}
+
+/// Store a session in the cookies when sending a response.
+pub fn store_session(cookies: &Cookies, session: &SessionInfo) -> anyhow::Result<()> {
+    let cookie_expire = OffsetDateTime::from_unix_timestamp(session.valid_until.timestamp())
+        .context("could not convert date")?;
+
+    let mut cookie = Cookie::new("session-token", session.token.to_string());
+    cookie.set_secure(Some(true));
+    cookie.set_http_only(Some(true));
+    cookie.set_expires(cookie_expire);
+    cookie.set_path("/");
+    cookie.set_same_site(None);
+    cookies.add(cookie);
+    let mut cookie = Cookie::new("session-uuid", session.user_id.to_string());
+    cookie.set_expires(cookie_expire);
+    cookie.set_path("/");
+    cookie.set_same_site(None);
+    cookies.add(cookie);
+    Ok(())
 }
 
 impl Display for SessionToken {

@@ -9,11 +9,13 @@ use chrono::Duration;
 use http::StatusCode;
 use serde::Deserialize;
 use sqlx::PgPool;
-use time::OffsetDateTime;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::Cookies;
 use tracing::warn;
 
-use crate::{error, session::create_session};
+use crate::{
+    error,
+    session::{create_session, store_session},
+};
 
 #[derive(Deserialize)]
 pub struct AuthenticateForm {
@@ -66,20 +68,6 @@ pub async fn authenticate(
         .context("error while creating session")?;
     tx.commit().await?;
 
-    let cookie_expire = OffsetDateTime::from_unix_timestamp(session.valid_until.timestamp())
-        .context("could not convert date")?;
-
-    let mut cookie = Cookie::new("session-token", session.token.to_string());
-    cookie.set_secure(Some(true));
-    cookie.set_http_only(Some(true));
-    cookie.set_expires(cookie_expire);
-    cookie.set_path("/");
-    cookie.set_same_site(None);
-    cookies.add(cookie);
-    let mut cookie = Cookie::new("session-uuid", session.user_id.to_string());
-    cookie.set_expires(cookie_expire);
-    cookie.set_path("/");
-    cookie.set_same_site(None);
-    cookies.add(cookie);
+    store_session(&cookies, &session)?;
     Ok(Json(session).into_response())
 }

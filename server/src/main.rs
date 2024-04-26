@@ -11,8 +11,11 @@ use tracing_subscriber::EnvFilter;
 
 use crate::{
     api::{
-        authenticate::authenticate, download::file_content, file_info::file_info,
-        upload::handle_upload, users::get_user,
+        authenticate::authenticate,
+        download::file_content,
+        file_info::file_info,
+        upload::handle_upload,
+        users::{create_user, get_user, get_username},
     },
     file::{FileDb, FileStore},
     state::AppState,
@@ -74,7 +77,9 @@ pub async fn main() -> anyhow::Result<()> {
         .route("/api/files/:file_id/:file_name", get(file_info))
         .route("/api/files/:file_id/:file_name/content", get(file_content))
         .route("/api/sessions", post(authenticate))
+        .route("/api/users", post(create_user))
         .route("/api/users/:user_id", get(get_user))
+        .route("/api/usernames/:username", get(get_username))
         // Provides an API to easily read or modify cookies.
         .layer(tower_cookies::CookieManagerLayer::new())
         .with_state(state);

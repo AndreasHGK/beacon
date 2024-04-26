@@ -18,23 +18,68 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { LoaderCircle } from "lucide-react"
 
-const formSchema = z.object({
-  username: z.string().max(20, {
-    message: "Username must be at most 20 characters.",
-  }),
-  password: z.string().max(80, {
-    message: "Password must be at most 80 characters",
-  }),
-})
+const formSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, {
+        message: "Username must be at least 3 characters.",
+      })
+      .max(20, {
+        message: "Username must be at most 20 characters.",
+      }),
+    password: z
+      .string()
+      .min(8, {
+        message: "Password must be at least 8 characters",
+      })
+      .max(80, {
+        message: "Password must be at most 80 characters",
+      }),
+    verifyPassword: z
+      .string()
+      .min(8, {
+        message: "Password must be at least 8 characters",
+      })
+      .max(80, {
+        message: "Password must be at most 80 characters",
+      }),
+  })
+  .refine((data) => data.password === data.verifyPassword, {
+    message: "Passwords did not match",
+    path: ["verifyPassword"],
+  })
+  .refine(
+    async (data) => {
+      const resp = await fetch(`/api/usernames/${data.username}`)
 
-type LoginState =
+      if (resp.status == 404) {
+        // The username is available, continue.
+        return true
+      }
+      if (!resp.ok) {
+        throw new Error("failed to fetch username")
+      }
+
+      // The user was found, don't allow the signup.
+      return false
+    },
+    {
+      message: "Username not available",
+      path: ["username"],
+    }
+  )
+
+type RegisterState =
   | { type: "idle" }
   | { type: "submitting" }
   | { type: "error"; message: string }
 
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter()
-  const [loginState, setLoginState] = useState<LoginState>({ type: "idle" })
+  const [registerState, setRegisterState] = useState<RegisterState>({
+    type: "idle",
+  })
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,9 +87,9 @@ export function LoginForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoginState({ type: "submitting" })
+    setRegisterState({ type: "submitting" })
 
-    let resp = await fetch("/api/sessions", {
+    let resp = await fetch("/api/users", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -53,17 +98,20 @@ export function LoginForm() {
     })
 
     if (resp.status == 401) {
-      setLoginState({ type: "error", message: "Unknown username or password." })
+      setRegisterState({
+        type: "error",
+        message: "Unknown username or password.",
+      })
       return
     }
 
     if (!resp.ok) {
-      setLoginState({ type: "error", message: "An unknown error occurred." })
-      throw new Error("An error occurred while trying to authenticate")
+      setRegisterState({ type: "error", message: "An unknown error occurred." })
+      throw new Error("An error occurred while trying to register")
     }
 
-    setLoginState({ type: "idle" })
-    toast("You have been logged in successfully.")
+    setRegisterState({ type: "idle" })
+    toast("Your account has been created.")
     router.replace("/")
     router.refresh()
   }
@@ -97,21 +145,34 @@ export function LoginForm() {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="verifyPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="your password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         {(() => {
           // Display an error message if the login failed.
-          if (loginState.type == "error") {
+          if (registerState.type == "error") {
             return (
               <p className="text-sm font-medium text-destructive">
-                {loginState.message}
+                {registerState.message}
               </p>
             )
           }
         })()}
         {(() => {
           // Display a loading button when the form is being processed.
-          if (loginState.type == "idle" || loginState.type == "error") {
+          if (registerState.type == "idle" || registerState.type == "error") {
             return <Button type="submit">Submit</Button>
-          } else if (loginState.type == "submitting") {
+          } else if (registerState.type == "submitting") {
             return (
               <Button type="submit" disabled className="flex flex-row gap-2">
                 <LoaderCircle className="animate-spin" />
