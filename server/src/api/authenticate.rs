@@ -74,10 +74,12 @@ pub async fn authenticate(
     cookie.set_http_only(Some(true));
     cookie.set_expires(cookie_expire);
     cookie.set_path("/");
+    cookie.set_same_site(None);
     cookies.add(cookie);
     let mut cookie = Cookie::new("session-uuid", session.user_id.to_string());
     cookie.set_expires(cookie_expire);
     cookie.set_path("/");
+    cookie.set_same_site(None);
     cookies.add(cookie);
     Ok(Json(session).into_response())
 }

@@ -75,6 +75,7 @@ export function LoginForm() {
     setLoginState({ type: "idle" })
     toast("You have been logged in successfully.")
     router.replace("/")
+    router.refresh()
   }
 
   return (
