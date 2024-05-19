@@ -24,24 +24,20 @@ pub struct FileInfo {
 }
 
 /// A unique identifier for a file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct FileId(u64);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct FileId(i64);
 
 impl FileId {
     /// Generate a new random file id.
     pub fn random() -> Self {
         Self(rand::random())
     }
-
-    /// Get the underlying data.
-    pub fn raw(&self) -> u64 {
-        self.0
-    }
 }
 
 impl Display for FileId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:x}", self.0)
+        write!(f, "{:x}", self.0 as u64)
     }
 }
 
@@ -49,7 +45,7 @@ impl FromStr for FileId {
     type Err = ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        u64::from_str_radix(s, 16).map(FileId)
+        u64::from_str_radix(s, 16).map(|v| v as i64).map(FileId)
     }
 }
 
@@ -102,6 +98,14 @@ impl FileDb {
         Self { db, store }
     }
 
+    pub fn file_store(&self) -> &FileStore {
+        &self.store
+    }
+
+    pub fn db(&self) -> &PgPool {
+        &self.db
+    }
+
     pub async fn create(
         &self,
         file_name: String,
@@ -113,8 +117,8 @@ impl FileDb {
             let id = FileId::random();
 
             let exists = sqlx::query!(
-                "select exists(select * from files where file_id = $1)",
-                id.raw() as i64
+                r#"select exists(select * from files where file_id = $1)"#,
+                id as FileId
             )
             .fetch_one(&mut *tx)
             .await?
@@ -142,7 +146,7 @@ impl FileDb {
                 )
                 returning upload_date
             "#,
-            file_id.raw() as i64,
+            file_id as FileId,
             file_name,
             file_size_db,
         )
@@ -162,7 +166,7 @@ impl FileDb {
     pub async fn file_info(&self, file_id: FileId) -> anyhow::Result<Option<FileInfo>> {
         Ok(sqlx::query!(
             "select file_name, upload_date, file_size from files where file_id=$1",
-            file_id.raw() as i64
+            file_id as FileId
         )
         .fetch_optional(&self.db)
         .await?
@@ -181,7 +185,7 @@ impl FileDb {
     ) -> anyhow::Result<Option<impl AsyncRead>> {
         let exists = sqlx::query!(
             "select exists(select * from files where file_id=$1 and file_name=$2)",
-            file_id.raw() as i64,
+            file_id as FileId,
             file_name
         )
         .fetch_one(&self.db)
@@ -234,5 +238,14 @@ impl FileStore {
             .await
             .context("while writing to file")?;
         Ok(size)
+    }
+
+    /// Permanently remove a file from the file store.
+    pub async fn remove(&self, id: FileId) -> anyhow::Result<()> {
+        let path = self.root.join(id.to_string());
+        fs::remove_file(path)
+            .await
+            .context("could not remove file")?;
+        Ok(())
     }
 }

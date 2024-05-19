@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select file_id as \"file_id: FileId\", file_name, file_size, upload_date from files where uploader_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "file_id: FileId",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "file_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "upload_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "31aaec5e458d3472cf8f3bcb01ca1c89f0cc8bdf10c1c8c8e41b06a6b2f6829f"
+}

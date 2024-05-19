@@ -1,3 +1,5 @@
+pub mod files;
+
 use std::collections::HashMap;
 
 use anyhow::Context as _;

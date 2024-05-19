@@ -1,3 +1,5 @@
+import { cookies } from "next/headers"
+
 export async function serverFetch(
   url: RequestInfo | string,
   options?: RequestInit
@@ -8,8 +10,13 @@ export async function serverFetch(
   }
   finalUrl = process.env.API_REQUEST_ROOT + finalUrl
 
-  const finalOptions = options || {}
+  const finalOptions = options || ({} as { [key: string]: string })
   finalOptions["credentials"] = finalOptions["credentials"] || "include"
+  finalOptions["headers"] = (finalOptions["headers"] || {}) as {
+    [key: string]: string
+  }
+  // Make sure to pass along all cookies.
+  finalOptions.headers["Cookie"] = cookies().toString()
 
   return await fetch(finalUrl, finalOptions)
 }

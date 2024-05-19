@@ -36,6 +36,7 @@
       (type == "directory") || (builtins.match ".*\\.[jt]sx?$" path != null)
       || (lib.hasSuffix ".ico" path) || (lib.hasSuffix ".css" path)
       || (lib.hasSuffix ".json" path) || (lib.hasSuffix ".mjs" path)
-      || (lib.hasSuffix ".ttf" path) || (lib.hasSuffix "yarn.lock" path);
+      || (lib.hasSuffix ".ttf" path) || (lib.hasSuffix "yarn.lock" path)
+      || (lib.hasSuffix ".eslintignore" path);
   };
 }
