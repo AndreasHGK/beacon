@@ -23,10 +23,9 @@ use crate::{
 };
 
 mod api;
-pub mod auth;
+mod auth;
 mod error;
 mod file;
-pub mod model;
 mod session;
 mod state;
 

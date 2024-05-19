@@ -8,7 +8,11 @@ use http::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{auth::Authentication, error, file::FileId, model::File};
+use crate::{
+    auth::Authentication,
+    error,
+    file::{FileId, FileInfo},
+};
 
 pub async fn get_user_files(
     auth: Authentication,
@@ -24,7 +28,7 @@ pub async fn get_user_files(
         user_id,
     )
     .try_map(|row| {
-        Ok(File {
+        Ok(FileInfo {
             file_id: row.file_id,
             file_name: row.file_name,
             file_size: row
