@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            delete from ssh_keys\n                where user_id=$1 and public_key_fingerprint=$2\n                returning true as found\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "found",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "43bad1d936ba363d45341c3e817028e3f043a4c61d4bd10aec9d54da014cd2c4"
+}

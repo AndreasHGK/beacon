@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 // Returns true if the user has a session. This is a server-side function.
 export function hasSession(): boolean {
@@ -23,4 +24,14 @@ export function getSession(): SessionInfo | null {
     token: token,
     uuid: uuid,
   }
+}
+
+// Get the user's session, redirecting to the login page if there is no session present.
+export function mustGetSession(): SessionInfo {
+  const session = getSession()
+  if (!session) {
+    redirect("/login")
+  }
+
+  return session
 }

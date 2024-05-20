@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            insert into ssh_keys (user_id, public_key_fingerprint, public_key, name)\n                values ($1, $2, $3, $4)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f22f017cac39d129dc4da266e0a5bd2ef5ec825c73ab29fe65fd4aa2153fa3b"
+}

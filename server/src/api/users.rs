@@ -1,4 +1,5 @@
 pub mod files;
+pub mod ssh_keys;
 
 use std::collections::HashMap;
 
