@@ -2,16 +2,26 @@ use std::{env, io, sync::Arc};
 
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
     response::{IntoResponse, Response},
+    routing::post,
+    Router,
 };
 use futures::TryStreamExt;
+use http::StatusCode;
 use tokio_util::io::StreamReader;
 use tracing::{error, info};
 
-use crate::file::FileDb;
+use crate::{file::FileDb, state::AppState};
 
-pub async fn handle_upload(
+mod file_id;
+
+pub(super) fn router() -> Router<AppState> {
+    Router::new()
+        .nest("/:file_id", file_id::router())
+        .route("/", post(handle_post))
+}
+
+async fn handle_post(
     State(file_store): State<Arc<FileDb>>,
     req: Request,
 ) -> Result<Response, StatusCode> {

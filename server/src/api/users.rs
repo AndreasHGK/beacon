@@ -1,59 +1,39 @@
-pub mod files;
-pub mod ssh_keys;
-
-use std::collections::HashMap;
+mod user_id;
 
 use anyhow::Context as _;
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
-    extract::{Path, State},
+    extract::State,
     response::{IntoResponse, Response},
-    Json,
+    routing::post,
+    Json, Router,
 };
 use chrono::Duration;
 use http::StatusCode;
 use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::PgPool;
 use tower_cookies::Cookies;
-use uuid::Uuid;
 
 use crate::{
     error,
     session::{create_session, store_session},
+    state::AppState,
 };
 
-#[derive(Serialize)]
-pub struct UserData {
-    pub username: String,
-}
-
-pub async fn get_user(
-    State(db): State<PgPool>,
-    Path(user_id): Path<Uuid>,
-) -> error::Result<Response> {
-    let row = sqlx::query!("select username from users where user_id = $1", user_id)
-        .fetch_optional(&db)
-        .await
-        .context("could not fetch user")?;
-
-    let Some(row) = row else {
-        return Ok(StatusCode::NOT_FOUND.into_response());
-    };
-
-    Ok(Json(UserData {
-        username: row.username,
-    })
-    .into_response())
+pub(super) fn router() -> Router<AppState> {
+    Router::new()
+        .nest("/:user_id", user_id::router())
+        .route("/", post(handle_post))
 }
 
 #[derive(Deserialize)]
-pub struct CreateUser {
-    pub username: String,
-    pub password: String,
+struct CreateUser {
+    username: String,
+    password: String,
 }
 
-pub async fn create_user(
+async fn handle_post(
     cookies: Cookies,
     State(db): State<PgPool>,
     Json(request): Json<CreateUser>,
@@ -106,22 +86,4 @@ pub async fn create_user(
 
     store_session(&cookies, &session)?;
     Ok(Json(session).into_response())
-}
-
-pub async fn get_username(
-    State(db): State<PgPool>,
-    Path(username): Path<String>,
-) -> error::Result<Response> {
-    let row = sqlx::query!("select user_id from users where username = $1", username)
-        .fetch_optional(&db)
-        .await
-        .context("could not fetch user")?;
-
-    let Some(row) = row else {
-        return Ok(StatusCode::NOT_FOUND.into_response());
-    };
-
-    let mut resp = HashMap::new();
-    resp.insert("user_id", row.user_id);
-    Ok(Json(resp).into_response())
 }

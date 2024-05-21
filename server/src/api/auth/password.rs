@@ -3,7 +3,8 @@ use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
-    Json,
+    routing::post,
+    Json, Router,
 };
 use chrono::Duration;
 use http::StatusCode;
@@ -15,15 +16,20 @@ use tracing::warn;
 use crate::{
     error,
     session::{create_session, store_session},
+    state::AppState,
 };
 
+pub(super) fn router() -> Router<AppState> {
+    Router::new().route("/", post(handle_post))
+}
+
 #[derive(Deserialize)]
-pub struct AuthenticateForm {
+struct AuthenticateForm {
     username: String,
     password: String,
 }
 
-pub async fn authenticate(
+async fn handle_post(
     cookies: Cookies,
     State(db): State<PgPool>,
     Json(form): Json<AuthenticateForm>,

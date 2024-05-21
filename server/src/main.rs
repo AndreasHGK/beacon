@@ -1,26 +1,12 @@
 use std::{env, net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
-use api::users::files::get_user_files;
-use axum::{
-    routing::{delete, get, post},
-    Router,
-};
+use axum::Router;
 use sqlx::PgPool;
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    api::{
-        authenticate::authenticate,
-        download::file_content,
-        file_info::{delete_file, file_info},
-        upload::handle_upload,
-        users::{
-            create_user, get_user, get_username,
-            ssh_keys::{add_ssh_key, delete_ssh_key, get_ssh_keys},
-        },
-    },
     file::{FileDb, FileStore},
     state::AppState,
 };
@@ -78,21 +64,7 @@ pub async fn main() -> anyhow::Result<()> {
     };
 
     let app = Router::new()
-        .route("/api/files", post(handle_upload))
-        .route("/api/files/:file_id/:file_name", get(file_info))
-        .route("/api/files/:file_id/:file_name", delete(delete_file))
-        .route("/api/files/:file_id/:file_name/content", get(file_content))
-        .route("/api/sessions", post(authenticate))
-        .route("/api/users", post(create_user))
-        .route("/api/users/:user_id", get(get_user))
-        .route("/api/users/:user_id/files", get(get_user_files))
-        .route("/api/users/:user_id/ssh-keys", get(get_ssh_keys))
-        .route("/api/users/:user_id/ssh-keys", post(add_ssh_key))
-        .route(
-            "/api/users/:user_id/ssh-keys/:fingerprint",
-            delete(delete_ssh_key),
-        )
-        .route("/api/usernames/:username", get(get_username))
+        .nest("/api", api::router())
         // Provides an API to easily read or modify cookies.
         .layer(tower_cookies::CookieManagerLayer::new())
         .with_state(state);

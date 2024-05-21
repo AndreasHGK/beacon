@@ -1,17 +1,27 @@
+mod content;
+
 use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    routing::{delete, get},
+    Json, Router,
 };
-
 use tracing::{error, info};
 
+use crate::state::AppState;
 use crate::{auth::Authentication, file::FileId, FileDb};
 
-pub async fn file_info(
+pub(super) fn router() -> Router<AppState> {
+    Router::new()
+        .nest("/content", content::router())
+        .route("/", get(handle_get))
+        .route("/", delete(handle_delete))
+}
+
+async fn handle_get(
     State(file_store): State<Arc<FileDb>>,
     Path((file_id, file_name)): Path<(FileId, String)>,
 ) -> Response {
@@ -33,7 +43,7 @@ pub async fn file_info(
     Json(file_info).into_response()
 }
 
-pub async fn delete_file(
+async fn handle_delete(
     auth: Authentication,
     State(file_store): State<Arc<FileDb>>,
     Path((file_id, file_name)): Path<(FileId, String)>,

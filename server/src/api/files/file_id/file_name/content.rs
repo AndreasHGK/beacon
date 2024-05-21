@@ -3,20 +3,27 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{HeaderName, StatusCode},
     response::Response,
+    routing::get,
+    Router,
 };
+use http::{HeaderName, StatusCode};
 use tokio_util::io::ReaderStream;
 use tracing::error;
 
-use crate::{file::FileId, FileDb};
+use crate::{
+    file::{FileDb, FileId},
+    state::AppState,
+};
 
-pub async fn file_content(
+pub(super) fn router() -> Router<AppState> {
+    Router::new().route("/", get(handle_get))
+}
+
+async fn handle_get(
     State(file_store): State<Arc<FileDb>>,
     Path((file_id, file_name)): Path<(FileId, String)>,
 ) -> Response {
-    // todo: check if the name matches the name stored here
-
     let resp_stream = match file_store.content(file_id, &file_name).await {
         Ok(Some(v)) => v,
         Ok(None) => {

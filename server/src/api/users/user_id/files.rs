@@ -2,7 +2,8 @@ use anyhow::Context;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    Json,
+    routing::get,
+    Json, Router,
 };
 use http::StatusCode;
 use sqlx::PgPool;
@@ -12,9 +13,14 @@ use crate::{
     auth::Authentication,
     error,
     file::{FileId, FileInfo},
+    state::AppState,
 };
 
-pub async fn get_user_files(
+pub(super) fn router() -> Router<AppState> {
+    Router::new().route("/", get(handle_get))
+}
+
+async fn handle_get(
     auth: Authentication,
     State(db): State<PgPool>,
     Path(user_id): Path<Uuid>,

@@ -1,5 +1,16 @@
-pub mod authenticate;
-pub mod download;
-pub mod file_info;
-pub mod upload;
-pub mod users;
+use axum::Router;
+
+use crate::state::AppState;
+
+mod auth;
+mod files;
+mod usernames;
+mod users;
+
+pub(super) fn router() -> Router<AppState> {
+    Router::new()
+        .nest("/auth", auth::router())
+        .nest("/files", files::router())
+        .nest("/usernames", usernames::router())
+        .nest("/users", users::router())
+}

@@ -44,7 +44,7 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoginState({ type: "submitting" })
 
-    let resp = await fetch("/api/sessions", {
+    let resp = await fetch("/api/auth/password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

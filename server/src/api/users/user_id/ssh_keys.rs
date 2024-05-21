@@ -1,8 +1,11 @@
+mod fingerprint;
+
 use anyhow::Context;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    Json,
+    routing::{get, post},
+    Json, Router,
 };
 use chrono::{
     serde::{ts_milliseconds, ts_milliseconds_option},
@@ -11,18 +14,64 @@ use chrono::{
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use ssh_key::{Fingerprint, PublicKey};
+use ssh_key::PublicKey;
 use uuid::Uuid;
 
-use crate::{auth::Authentication, error};
+use crate::{auth::Authentication, error, state::AppState};
+
+pub(super) fn router() -> Router<AppState> {
+    Router::new()
+        .nest("/:fingerprint", fingerprint::router())
+        .route("/", get(handle_get))
+        .route("/", post(handle_post))
+}
+
+#[derive(Serialize, Debug)]
+struct PublicKeyInfo {
+    name: String,
+    fingerprint: String,
+    #[serde(with = "ts_milliseconds")]
+    add_date: DateTime<Utc>,
+    #[serde(with = "ts_milliseconds_option")]
+    last_use: Option<DateTime<Utc>>,
+}
+
+async fn handle_get(
+    auth: Authentication,
+    State(db): State<PgPool>,
+    Path(user_id): Path<Uuid>,
+) -> error::Result<Response> {
+    if auth.user_id != user_id {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    }
+
+    let keys = sqlx::query!(
+        r#"
+            select name, public_key_fingerprint, add_date, last_use
+                from ssh_keys
+                where user_id=$1
+        "#,
+        user_id,
+    )
+    .map(|row| PublicKeyInfo {
+        name: row.name,
+        fingerprint: row.public_key_fingerprint,
+        add_date: row.add_date,
+        last_use: row.last_use,
+    })
+    .fetch_all(&db)
+    .await?;
+
+    Ok(Json(keys).into_response())
+}
 
 #[derive(Debug, Deserialize)]
-pub struct PostData {
+struct PostData {
     name: String,
     public_key: PublicKey,
 }
 
-pub async fn add_ssh_key(
+async fn handle_post(
     auth: Authentication,
     State(db): State<PgPool>,
     Path(user_id): Path<Uuid>,
@@ -79,73 +128,6 @@ pub async fn add_ssh_key(
     .await?;
 
     tx.commit().await?;
-
-    Ok(().into_response())
-}
-
-#[derive(Serialize, Debug)]
-struct PublicKeyInfo {
-    name: String,
-    fingerprint: String,
-    #[serde(with = "ts_milliseconds")]
-    add_date: DateTime<Utc>,
-    #[serde(with = "ts_milliseconds_option")]
-    last_use: Option<DateTime<Utc>>,
-}
-
-pub async fn get_ssh_keys(
-    auth: Authentication,
-    State(db): State<PgPool>,
-    Path(user_id): Path<Uuid>,
-) -> error::Result<Response> {
-    if auth.user_id != user_id {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
-    let keys = sqlx::query!(
-        r#"
-            select name, public_key_fingerprint, add_date, last_use
-                from ssh_keys
-                where user_id=$1
-        "#,
-        user_id,
-    )
-    .map(|row| PublicKeyInfo {
-        name: row.name,
-        fingerprint: row.public_key_fingerprint,
-        add_date: row.add_date,
-        last_use: row.last_use,
-    })
-    .fetch_all(&db)
-    .await?;
-
-    Ok(Json(keys).into_response())
-}
-
-pub async fn delete_ssh_key(
-    auth: Authentication,
-    State(db): State<PgPool>,
-    Path((user_id, fingerprint)): Path<(Uuid, Fingerprint)>,
-) -> error::Result<Response> {
-    if auth.user_id != user_id {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
-    let row = sqlx::query!(
-        r#"
-            delete from ssh_keys
-                where user_id=$1 and public_key_fingerprint=$2
-                returning true as found
-        "#,
-        user_id,
-        fingerprint.to_string(),
-    )
-    .fetch_optional(&db)
-    .await?;
-
-    if row.is_none() {
-        return Ok(StatusCode::NOT_FOUND.into_response());
-    }
 
     Ok(().into_response())
 }

@@ -25,7 +25,7 @@ export function SSHKey(props: {
 
   const deleteKey = useCallback(async () => {
     const resp = await fetch(
-      `/api/users/${props.owner_id}/ssh-keys/${props.fingerprint}`,
+      `/api/users/${props.owner_id}/ssh-keys/${props.fingerprint.replaceAll("/", "%2F")}`,
       {
         method: "DELETE",
       }
