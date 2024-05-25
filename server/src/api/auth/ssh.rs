@@ -1,5 +1,5 @@
-mod password;
-mod ssh;
+mod step1;
+mod step2;
 
 use axum::Router;
 
@@ -7,6 +7,6 @@ use crate::state::AppState;
 
 pub(super) fn router() -> Router<AppState> {
     Router::new()
-        .nest("/password", password::router())
-        .nest("/ssh", ssh::router())
+        .nest("/step1", step1::router())
+        .nest("/step2", step2::router())
 }

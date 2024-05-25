@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            insert into files(file_id, file_name, file_size, upload_date, uploader_id)\n                values(\n                    $1,\n                    $2,\n                    $3,\n                    now(),\n                    $4\n                )\n                returning upload_date\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "upload_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c3775f3546132b2aac019c3955914deb306daa6b27f5507ac09c1c9c51d6dd79"
+}

@@ -9,9 +9,9 @@ use axum::{
 use futures::TryStreamExt;
 use http::StatusCode;
 use tokio_util::io::StreamReader;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
-use crate::{file::FileDb, state::AppState};
+use crate::{auth::Authentication, file::FileDb, state::AppState};
 
 mod file_id;
 
@@ -22,10 +22,11 @@ pub(super) fn router() -> Router<AppState> {
 }
 
 async fn handle_post(
+    auth: Authentication,
     State(file_store): State<Arc<FileDb>>,
     req: Request,
 ) -> Result<Response, StatusCode> {
-    info!("Received new file!");
+    debug!(?auth.user_id, "Started file upload");
 
     let file_name = req
         .headers()
@@ -36,6 +37,7 @@ async fn handle_post(
 
     let file = file_store
         .create(
+            auth.user_id,
             file_name,
             StreamReader::new(req.into_body().into_data_stream().map_err(io::Error::other)),
         )
@@ -45,6 +47,7 @@ async fn handle_post(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    info!(?auth.user_id, ?file.file_name, ?file.file_size, "A file was uploaded");
     Ok(format!(
         "{}/files/{}/{}",
         env::var("EXTERNAL_URL").unwrap(), // todo: store in config

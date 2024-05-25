@@ -3,6 +3,8 @@ use std::sync::Arc;
 use axum::extract::FromRef;
 use sqlx::PgPool;
 
+use crate::auth::ssh::SSHAuthState;
+
 use super::file::FileDb;
 
 /// Combines all different state types into one.
@@ -10,4 +12,5 @@ use super::file::FileDb;
 pub struct AppState {
     pub database: PgPool,
     pub file_store: Arc<FileDb>,
+    pub ssh_auth: Arc<SSHAuthState>,
 }

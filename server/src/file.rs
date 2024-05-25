@@ -12,6 +12,7 @@ use chrono::{serde::ts_milliseconds, DateTime, Utc};
 use serde::{de::Visitor, Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::{fs, io::AsyncRead};
+use uuid::Uuid;
 
 /// Information for a file.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -108,6 +109,7 @@ impl FileDb {
 
     pub async fn create(
         &self,
+        owner: Uuid,
         file_name: String,
         content: impl AsyncRead,
     ) -> anyhow::Result<FileInfo> {
@@ -142,13 +144,14 @@ impl FileDb {
                     $2,
                     $3,
                     now(),
-                    (select user_id from users order by created_at asc limit 1)
+                    $4
                 )
                 returning upload_date
             "#,
             file_id as FileId,
             file_name,
             file_size_db,
+            owner,
         )
         .fetch_one(&mut *tx)
         .await?;

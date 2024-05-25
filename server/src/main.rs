@@ -7,6 +7,7 @@ use tracing::{error, info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 use crate::{
+    auth::ssh::SSHAuthState,
     file::{FileDb, FileStore},
     state::AppState,
 };
@@ -61,6 +62,7 @@ pub async fn main() -> anyhow::Result<()> {
     let state = AppState {
         database: pool,
         file_store: Arc::new(file_db),
+        ssh_auth: SSHAuthState::init(),
     };
 
     let app = Router::new()

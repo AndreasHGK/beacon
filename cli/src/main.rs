@@ -1,8 +1,10 @@
+mod auth;
 mod byte_stream;
 
 use std::{io, path::PathBuf};
 
 use anyhow::{anyhow, Context};
+use auth::{create_session, get_private_key};
 use clap::Parser;
 use flate2::{write::GzEncoder, Compression};
 use reqwest::{Body, StatusCode};
@@ -83,11 +85,36 @@ async fn main() -> anyhow::Result<()> {
         Ok(())
     });
 
+    // TODO: allow host to be configured
+    let host = "http://localhost:2000";
+
+    let mut client = reqwest::ClientBuilder::new()
+        // Sessions are stored in the cookie jar.
+        .cookie_store(true)
+        // Sessions rely on HTTPS being active.
+        .https_only({
+            #[cfg(debug_assertions)]
+            let x = false;
+            #[cfg(not(debug_assertions))]
+            let x = true;
+            x
+        })
+        .build()
+        .context("could not build http client")?;
+
+    let Some(priv_key) = get_private_key().await else {
+        return Err(anyhow!("could not find private ssh key"));
+    };
+    // TODO: allow username to be configured
+    create_session(&mut client, host, "admin", priv_key)
+        .await
+        .context("could not create session")?;
+
     // Upload the file while it is being written.
-    let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async {
+    let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async move {
         println!("Uploading file...");
-        let resp = reqwest::Client::new()
-            .post("http://localhost:2000/api/files")
+        let resp = client
+            .post(format!("{host}/api/files"))
             .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
             .send()

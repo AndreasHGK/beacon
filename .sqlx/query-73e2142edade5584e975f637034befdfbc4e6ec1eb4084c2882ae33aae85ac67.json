@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select public_key, users.user_id\n                from ssh_keys join users on ssh_keys.user_id=users.user_id\n                where users.username=$1 and public_key_fingerprint=$2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "public_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "73e2142edade5584e975f637034befdfbc4e6ec1eb4084c2882ae33aae85ac67"
+}
