@@ -1,7 +1,38 @@
+import { type VariantProps } from "class-variance-authority"
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
 import { hasSession } from "@/lib/sessions"
 import { buttonVariants } from "@/components/ui/button"
+
+export function UserNav(props: VariantProps<typeof buttonVariants>) {
+  if (hasSession()) {
+    return (
+      <Link
+        href="/panel"
+        className={buttonVariants({ variant: props.variant })}
+      >
+        Dashboard
+      </Link>
+    )
+  }
+
+  return (
+    <div className="flex flex-row gap-2">
+      <Link
+        href="/login"
+        className={buttonVariants({ variant: props.variant })}
+      >
+        Log in
+      </Link>
+      <Link
+        href="/register"
+        className={buttonVariants({ variant: props.variant })}
+      >
+        Register
+      </Link>
+    </div>
+  )
+}
 
 export function MainNav() {
   return (
@@ -11,35 +42,7 @@ export function MainNav() {
           Beacon
         </Link>
         <div className="flex flex-row w-full pr-8 justify-end self-stretch items-center gap-2">
-          {(() => {
-            if (hasSession()) {
-              return (
-                <Link
-                  href="/panel"
-                  className={buttonVariants({ variant: "outline" })}
-                >
-                  Dashboard
-                </Link>
-              )
-            } else {
-              return (
-                <div className="flex flex-row gap-2">
-                  <Link
-                    href="/login"
-                    className={buttonVariants({ variant: "outline" })}
-                  >
-                    Log in
-                  </Link>
-                  <Link
-                    href="/register"
-                    className={buttonVariants({ variant: "outline" })}
-                  >
-                    Register
-                  </Link>
-                </div>
-              )
-            }
-          })()}
+          <UserNav variant="outline" />
           <ModeToggle />
         </div>
       </div>
