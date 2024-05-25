@@ -8,12 +8,14 @@ use tracing_subscriber::EnvFilter;
 
 use crate::{
     auth::ssh::SSHAuthState,
+    config::Config,
     file::{FileDb, FileStore},
     state::AppState,
 };
 
 mod api;
 mod auth;
+mod config;
 mod error;
 mod file;
 mod session;
@@ -31,6 +33,8 @@ pub async fn main() -> anyhow::Result<()> {
                 .context("failed to configure logger")?,
         )
         .init();
+
+    let config = Config::read().await.context("could not read config")?;
 
     let bind_addr: SocketAddr = env::var("BEACON_SERVER_ADDR")
         .unwrap_or_else(|_| "127.0.0.1:4000".to_string())
@@ -63,6 +67,7 @@ pub async fn main() -> anyhow::Result<()> {
         database: pool,
         file_store: Arc::new(file_db),
         ssh_auth: SSHAuthState::init(),
+        config: Arc::new(config),
     };
 
     let app = Router::new()

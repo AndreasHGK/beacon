@@ -1,0 +1,6 @@
+## ============================
+## Example server configuration
+## ============================
+
+# Set to true to enable *anyone* to create an account.
+allow_registering = false

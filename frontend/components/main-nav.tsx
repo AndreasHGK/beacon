@@ -3,8 +3,10 @@ import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
 import { hasSession } from "@/lib/sessions"
 import { buttonVariants } from "@/components/ui/button"
+import { getConfig } from "@/lib/config"
 
-export function UserNav(props: VariantProps<typeof buttonVariants>) {
+export async function UserNav(props: VariantProps<typeof buttonVariants>) {
+  const config = await getConfig()
   if (hasSession()) {
     return (
       <Link
@@ -24,12 +26,16 @@ export function UserNav(props: VariantProps<typeof buttonVariants>) {
       >
         Log in
       </Link>
-      <Link
-        href="/register"
-        className={buttonVariants({ variant: props.variant })}
-      >
-        Register
-      </Link>
+      {config.allow_registering ? (
+        <Link
+          href="/register"
+          className={buttonVariants({ variant: props.variant })}
+        >
+          Register
+        </Link>
+      ) : (
+        <></>
+      )}
     </div>
   )
 }

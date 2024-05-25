@@ -1,5 +1,7 @@
 mod user_id;
 
+use std::sync::Arc;
+
 use anyhow::Context as _;
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
@@ -16,6 +18,7 @@ use sqlx::PgPool;
 use tower_cookies::Cookies;
 
 use crate::{
+    config::Config,
     error,
     session::{create_session, store_session},
     state::AppState,
@@ -36,8 +39,13 @@ struct CreateUser {
 async fn handle_post(
     cookies: Cookies,
     State(db): State<PgPool>,
+    State(config): State<Arc<Config>>,
     Json(request): Json<CreateUser>,
 ) -> error::Result<Response> {
+    if !config.public_config.allow_registering {
+        return Ok((StatusCode::FORBIDDEN, "User registering has been disabled").into_response());
+    }
+
     let mut tx = db.begin().await?;
 
     let row = sqlx::query!(

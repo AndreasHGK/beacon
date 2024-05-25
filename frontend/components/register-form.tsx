@@ -97,10 +97,10 @@ export function RegisterForm() {
       body: JSON.stringify(values),
     })
 
-    if (resp.status == 401) {
+    if (resp.status == 403) {
       setRegisterState({
         type: "error",
-        message: "Unknown username or password.",
+        message: await resp.text(),
       })
       return
     }
