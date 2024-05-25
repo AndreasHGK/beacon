@@ -42,7 +42,7 @@ export function SSHKey(props: {
 
     toast("The SSH key was removed.")
     router.refresh()
-  }, [router])
+  }, [router, props.fingerprint, props.owner_id])
 
   return (
     <div className="border rounded p-2 px-3 flex flex-row bg-card">
