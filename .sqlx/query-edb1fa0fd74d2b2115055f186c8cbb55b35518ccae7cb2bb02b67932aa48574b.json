@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select password_hash, username from users where user_id=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "edb1fa0fd74d2b2115055f186c8cbb55b35518ccae7cb2bb02b67932aa48574b"
+}

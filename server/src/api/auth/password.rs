@@ -61,6 +61,7 @@ async fn handle_post(
     .context("could not join hasher thread")?;
 
     if let Err(err) = hash_check {
+        tx.commit().await?;
         warn!(
             "Authentication for user `{}` failed: {err:?}",
             form.username

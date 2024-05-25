@@ -1,3 +1,4 @@
+import { Password } from "./password"
 import { SSHKeys } from "./ssh-keys"
 
 export default async function Security() {
@@ -9,6 +10,7 @@ export default async function Security() {
           Keep your account secure.
         </p>
       </div>
+      <Password />
       <SSHKeys />
     </main>
   )

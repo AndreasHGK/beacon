@@ -1,4 +1,5 @@
 mod files;
+mod password;
 mod ssh_keys;
 
 use anyhow::Context;
@@ -18,6 +19,7 @@ use crate::{error, state::AppState};
 pub(super) fn router() -> Router<AppState> {
     Router::new()
         .nest("/files", files::router())
+        .nest("/password", password::router())
         .nest("/ssh-keys", ssh_keys::router())
         .route("/", get(handle_get))
 }
