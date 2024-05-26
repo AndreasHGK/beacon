@@ -1,6 +1,7 @@
 mod files;
 mod password;
 mod ssh_keys;
+mod username;
 
 use anyhow::Context;
 use axum::{
@@ -21,6 +22,7 @@ pub(super) fn router() -> Router<AppState> {
         .nest("/files", files::router())
         .nest("/password", password::router())
         .nest("/ssh-keys", ssh_keys::router())
+        .nest("/username", username::router())
         .route("/", get(handle_get))
 }
 

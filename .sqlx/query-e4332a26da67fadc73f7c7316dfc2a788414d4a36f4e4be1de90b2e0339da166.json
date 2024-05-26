@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update users set username=$1 where user_id=$2 returning user_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e4332a26da67fadc73f7c7316dfc2a788414d4a36f4e4be1de90b2e0339da166"
+}
