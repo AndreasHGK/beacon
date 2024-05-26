@@ -11,6 +11,7 @@ use axum::{
     Json, Router,
 };
 use http::StatusCode;
+use num_traits::cast::ToPrimitive;
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -29,16 +30,26 @@ pub(super) fn router() -> Router<AppState> {
 #[derive(Serialize)]
 struct UserData {
     username: String,
+    total_storage_space: u64,
 }
 
 async fn handle_get(
     State(db): State<PgPool>,
     Path(user_id): Path<Uuid>,
 ) -> error::Result<Response> {
-    let row = sqlx::query!("select username from users where user_id = $1", user_id)
-        .fetch_optional(&db)
-        .await
-        .context("could not fetch user")?;
+    let row = sqlx::query!(
+        r#"
+            select username, sum(files.file_size) as "total_size!"
+                from users
+                    join files on users.user_id=files.uploader_id
+                where user_id = $1
+                group by users.user_id
+        "#,
+        user_id,
+    )
+    .fetch_optional(&db)
+    .await
+    .context("could not fetch user")?;
 
     let Some(row) = row else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -46,6 +57,10 @@ async fn handle_get(
 
     Ok(Json(UserData {
         username: row.username,
+        total_storage_space: row
+            .total_size
+            .to_u64()
+            .context("could not convert file size")?,
     })
     .into_response())
 }
