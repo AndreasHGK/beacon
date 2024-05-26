@@ -9,18 +9,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { ChangePasswordForm } from "@/components/change-password-form"
 import { mustGetSession } from "@/lib/sessions"
+import { Dashboard } from "@/components/dashboard"
 
 export function Password() {
   const session = mustGetSession()
 
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="font-bold text-2xl">Password</h2>
-      <p className="text-lg text-muted-foreground">
+    <Dashboard.Section>
+      <Dashboard.Subtitle>Password</Dashboard.Subtitle>
+      <Dashboard.Subtext>
         Press the button below to change your password. This will also clear all
         your sessions.
-      </p>
-      <div className="pt-2">
+      </Dashboard.Subtext>
+      <Dashboard.SectionContent>
         <Dialog>
           <DialogTrigger asChild>
             <Button className="max-w-fit">Change password</Button>
@@ -36,7 +37,7 @@ export function Password() {
             <ChangePasswordForm userId={session.uuid} />
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </Dashboard.SectionContent>
+    </Dashboard.Section>
   )
 }

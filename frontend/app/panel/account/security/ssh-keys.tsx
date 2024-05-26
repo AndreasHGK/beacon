@@ -12,6 +12,7 @@ import { mustGetSession } from "@/lib/sessions"
 import { redirect } from "next/navigation"
 import { AddSSHKey } from "./ssh-key-form"
 import { SSHKey } from "@/components/ssh-key"
+import { Dashboard } from "@/components/dashboard"
 
 export async function SSHKeys() {
   const session = mustGetSession()
@@ -32,13 +33,13 @@ export async function SSHKeys() {
   }[]
 
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="font-bold text-2xl">SSH Keys</h2>
-      <p className="text-lg text-muted-foreground">
+    <Dashboard.Section>
+      <Dashboard.Subtitle>SSH Keys</Dashboard.Subtitle>
+      <Dashboard.Subtext>
         To avoid needing to manually authenticate when using the CLI, you may
         provide public SSH keys to automatically authenticate via the terminal.
-      </p>
-      <div className="pt-2">
+      </Dashboard.Subtext>
+      <Dashboard.SectionContent>
         <Dialog>
           <DialogTrigger asChild>
             <Button className="max-w-fit">Add key</Button>
@@ -55,21 +56,21 @@ export async function SSHKeys() {
             <AddSSHKey userId={session.uuid} />
           </DialogContent>
         </Dialog>
-      </div>
-      <div className="grid col-1 gap-4 pt-4">
-        {sshKeys.map((val, id) => {
-          return (
-            <SSHKey
-              key={id}
-              owner_id={session.uuid}
-              name={val.name}
-              fingerprint={val.fingerprint}
-              add_date={new Date(val.add_date)}
-              last_use={val.last_use ? new Date(val.last_use) : undefined}
-            />
-          )
-        })}
-      </div>
-    </div>
+        <div className="grid col-1 gap-4 pt-4">
+          {sshKeys.map((val, id) => {
+            return (
+              <SSHKey
+                key={id}
+                owner_id={session.uuid}
+                name={val.name}
+                fingerprint={val.fingerprint}
+                add_date={new Date(val.add_date)}
+                last_use={val.last_use ? new Date(val.last_use) : undefined}
+              />
+            )
+          })}
+        </div>
+      </Dashboard.SectionContent>
+    </Dashboard.Section>
   )
 }

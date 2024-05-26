@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { serverFetch } from "@/lib/server-fetch"
 import { FileTable, columns } from "./file-table"
 import { getSession } from "@/lib/sessions"
+import { Dashboard } from "@/components/dashboard"
 
 export default async function Panel() {
   let session = getSession()
@@ -29,15 +30,15 @@ export default async function Panel() {
   )
 
   return (
-    <main className="flex flex-col justify-center flex-1 gap-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-bold text-4xl">My Files</h1>
-        <p className="text-lg text-muted-foreground">
+    <Dashboard.Page>
+      <Dashboard.Header>
+        <Dashboard.Title>My Files</Dashboard.Title>
+        <Dashboard.Subtext>
           Manage your files. Uploading files is currently only supported using
           the command line interface.
-        </p>
-      </div>
+        </Dashboard.Subtext>
+      </Dashboard.Header>
       <FileTable columns={columns} data={files} />
-    </main>
+    </Dashboard.Page>
   )
 }
