@@ -104,6 +104,7 @@ export function ChangePasswordForm(props: { userId: string }) {
               <FormControl>
                 <Input
                   type="password"
+                  autoComplete="current-password"
                   placeholder="current password"
                   {...field}
                 />
@@ -119,7 +120,12 @@ export function ChangePasswordForm(props: { userId: string }) {
             <FormItem>
               <FormLabel>New Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="new password" {...field} />
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="new password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -132,7 +138,12 @@ export function ChangePasswordForm(props: { userId: string }) {
             <FormItem>
               <FormLabel>Confirm New Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="new password" {...field} />
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="new password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

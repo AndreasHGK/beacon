@@ -78,7 +78,13 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder="your username" {...field} />
+                <Input
+                  autoComplete="username"
+                  spellCheck="false"
+                  autoCapitalize="none"
+                  placeholder="your username"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -91,7 +97,12 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="your password" {...field} />
+                <Input
+                  autoComplete="current-password"
+                  type="password"
+                  placeholder="your password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

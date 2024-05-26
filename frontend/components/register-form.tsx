@@ -126,7 +126,13 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder="your username" {...field} />
+                <Input
+                  autoComplete="username"
+                  spellCheck="false"
+                  autoCapitalize="none"
+                  placeholder="your username"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -139,7 +145,12 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="your password" {...field} />
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="your password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -152,7 +163,12 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="your password" {...field} />
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="your password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
