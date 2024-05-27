@@ -1,13 +1,19 @@
 mod auth;
 mod byte_stream;
+mod config;
 
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{anyhow, Context};
 use auth::{create_session, get_private_key};
 use clap::Parser;
+use config::Config;
 use flate2::{write::GzEncoder, Compression};
 use reqwest::{Body, StatusCode};
+use ssh_key::PrivateKey;
 use tokio::{
     fs,
     task::{self, JoinHandle},
@@ -26,6 +32,8 @@ struct Command {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    let config = Config::read().await?;
+    // let config = Config::read().await.context("could not read config")?;
     let command = Command::parse();
 
     if command.files.is_empty() {
@@ -85,9 +93,6 @@ async fn main() -> anyhow::Result<()> {
         Ok(())
     });
 
-    // TODO: allow host to be configured
-    let host = "http://localhost:2000";
-
     let mut client = reqwest::ClientBuilder::new()
         // Sessions are stored in the cookie jar.
         .cookie_store(true)
@@ -102,11 +107,25 @@ async fn main() -> anyhow::Result<()> {
         .build()
         .context("could not build http client")?;
 
-    let Some(priv_key) = get_private_key().await else {
-        return Err(anyhow!("could not find private ssh key"));
+    let priv_key = match &config.ssh_key {
+        // If the user has configured a path to an SSH key, use that.
+        Some(ssh_key_path) => {
+            let priv_key_data = fs::read_to_string(Path::new(ssh_key_path))
+                .await
+                .context("could not read ssh key file")?;
+            PrivateKey::from_openssh(priv_key_data)
+                .context("could not parse openssh private key")?
+        }
+        // Otherwise, try to find the private key.
+        None => match get_private_key().await {
+            Some(priv_key) => priv_key,
+            None => {
+                return Err(anyhow!("could not find private ssh key"));
+            }
+        },
     };
-    // TODO: allow username to be configured
-    create_session(&mut client, host, "admin", priv_key)
+
+    create_session(&mut client, &config.host, &config.username, priv_key)
         .await
         .context("could not create session")?;
 
@@ -114,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
     let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async move {
         println!("Uploading file...");
         let resp = client
-            .post(format!("{host}/api/files"))
+            .post(format!("{}/api/files", config.host))
             .header("file_name", file_name)
             .body(Body::wrap_stream(ReaderStream::new(reader)))
             .send()

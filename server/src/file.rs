@@ -135,7 +135,6 @@ impl FileDb {
         let file_size = self.store.put(file_id, content).await?;
         let file_size_db: i64 = file_size.try_into().context("invalid file size")?;
 
-        // todo: correctly store who uploaded the file
         let row = sqlx::query!(
             r#"
             insert into files(file_id, file_name, file_size, upload_date, uploader_id)
