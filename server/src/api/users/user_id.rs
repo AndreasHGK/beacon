@@ -39,9 +39,9 @@ async fn handle_get(
 ) -> error::Result<Response> {
     let row = sqlx::query!(
         r#"
-            select username, sum(files.file_size) as "total_size!"
+            select username, sum(files.file_size) as "total_size"
                 from users
-                    join files on users.user_id=files.uploader_id
+                    left outer join files on users.user_id=files.uploader_id
                 where user_id = $1
                 group by users.user_id
         "#,
@@ -59,8 +59,9 @@ async fn handle_get(
         username: row.username,
         total_storage_space: row
             .total_size
-            .to_u64()
-            .context("could not convert file size")?,
+            .map(|v| v.to_u64().context("could not convert file size"))
+            .transpose()?
+            .unwrap_or(0),
     })
     .into_response())
 }
