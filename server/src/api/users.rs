@@ -7,17 +7,20 @@ use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{get, post},
     Json, Router,
 };
-use chrono::Duration;
+use chrono::{DateTime, Duration, Utc};
 use http::StatusCode;
+use num_traits::ToPrimitive;
 use rand::rngs::OsRng;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tower_cookies::Cookies;
+use uuid::Uuid;
 
 use crate::{
+    auth::Authentication,
     config::Config,
     error,
     session::{create_session, store_session},
@@ -27,7 +30,44 @@ use crate::{
 pub(super) fn router() -> Router<AppState> {
     Router::new()
         .nest("/:user_id", user_id::router())
+        .route("/", get(handle_get))
         .route("/", post(handle_post))
+}
+
+#[derive(Serialize)]
+struct UserData {
+    id: Uuid,
+    username: String,
+    total_storage_space: u64,
+    created_at: DateTime<Utc>,
+    is_admin: bool,
+}
+
+async fn handle_get(auth: Authentication, State(db): State<PgPool>) -> error::Result<Response> {
+    if !auth.is_admin {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+
+    let rows = sqlx::query!(
+        r#"
+            select user_id, username, is_admin, created_at, sum(files.file_size) as "total_size"
+                from users
+                    left outer join files on users.user_id=files.uploader_id
+                group by users.user_id
+        "#,
+    )
+    .map(|row| UserData {
+        id: row.user_id,
+        username: row.username,
+        total_storage_space: row.total_size.and_then(|v| v.to_u64()).unwrap_or(0),
+        created_at: row.created_at,
+        is_admin: row.is_admin,
+    })
+    .fetch_all(&db)
+    .await
+    .context("could not fetch users")?;
+
+    Ok(Json(rows).into_response())
 }
 
 #[derive(Deserialize)]

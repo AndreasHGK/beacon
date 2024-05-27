@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { serverFetch } from "@/lib/server-fetch"
 import { mustGetSession } from "@/lib/sessions"
+import { redirect } from "next/navigation"
 import prettyBytes from "pretty-bytes"
 import { Suspense } from "react"
 
@@ -10,6 +11,14 @@ async function StatCards() {
   const session = mustGetSession()
 
   const resp = await serverFetch(`/api/users/${session.uuid}`)
+
+  if (resp.status == 401) {
+    redirect("/login")
+  }
+  if (!resp.ok) {
+    throw new Error("could not get stats")
+  }
+
   const data = (await resp.json()) as {
     total_storage_space: number
   }

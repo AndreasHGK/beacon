@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select is_admin from users where user_id=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_admin",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1fe4b792e3a405d717b235231200cf16f46219829a2f7469268aae8e20eb95f6"
+}

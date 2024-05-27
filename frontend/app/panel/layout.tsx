@@ -1,41 +1,29 @@
-"use client"
+import { NavGroup, NavItem } from "@/components/nav"
+import { serverFetch } from "@/lib/server-fetch"
+import { mustGetSession } from "@/lib/sessions"
+import { redirect } from "next/navigation"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { ReactNode } from "react"
-
-function NavItem(props: { href: string; content: string }) {
-  const pathname = usePathname()
-
-  return (
-    <Link
-      href={props.href}
-      className={
-        "text-muted-foreground pl-1 " +
-        (pathname == props.href
-          ? "font-medium text-foreground"
-          : "text-muted-foreground")
-      }
-    >
-      {props.content}
-    </Link>
-  )
-}
-
-function NavGroup(props: { title?: string; children: ReactNode }) {
-  return (
-    <div className="gap-1 flex flex-col">
-      <h3 className="text-foreground font-bold">{props.title || ""}</h3>
-      {props.children}
-    </div>
-  )
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = mustGetSession()
+
+  let isAdmin = false
+  const resp = await serverFetch(`/api/users/${session.uuid}/admin`)
+  if (resp.status == 401) {
+    redirect("/login")
+  }
+
+  if (!resp.ok) {
+    throw new Error("could not get admin status")
+  }
+
+  if ((await resp.text()) === "true") {
+    isAdmin = true
+  }
+
   return (
     <div className="max-w-screen-xl w-full flex flex-row mx-auto pt-16 px-4">
       <div className="flex-none">
@@ -49,6 +37,13 @@ export default function RootLayout({
             <NavItem href="/panel/account/profile" content="Profile" />
             <NavItem href="/panel/account/security" content="Security" />
           </NavGroup>
+          {isAdmin ? (
+            <NavGroup title="Admin">
+              <NavItem href="/panel/admin/users" content="Users" />
+            </NavGroup>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
       <div className="grow flex-1 px-6">{children}</div>

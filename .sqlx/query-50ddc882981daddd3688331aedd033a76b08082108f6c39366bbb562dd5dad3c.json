@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select username, sum(files.file_size) as \"total_size\"\n                from users\n                    left outer join files on users.user_id=files.uploader_id\n                where user_id = $1\n                group by users.user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_size",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "50ddc882981daddd3688331aedd033a76b08082108f6c39366bbb562dd5dad3c"
+}
