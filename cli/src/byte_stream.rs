@@ -1,7 +1,5 @@
 use std::{
-    future::Future,
     io::{self, Cursor, Read, Write},
-    pin::pin,
     task::Poll,
 };
 
@@ -103,7 +101,7 @@ impl AsyncRead for ByteReader {
         let mut remaining = self.buffer.get_ref().len() - self.buffer.position() as usize;
 
         if remaining == 0 {
-            let buffer = match pin!(self.receiver.recv()).poll(cx) {
+            let buffer = match self.receiver.poll_recv(cx) {
                 Poll::Pending => return Poll::Pending,
                 Poll::Ready(None) => return Poll::Ready(Ok(())),
                 Poll::Ready(Some(v)) => v,
