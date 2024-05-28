@@ -9,6 +9,7 @@ use std::{
 
 use anyhow::Context;
 use chrono::{serde::ts_milliseconds, DateTime, Utc};
+use scopeguard::{guard, ScopeGuard};
 use serde::{de::Visitor, Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::{fs, io::AsyncRead};
@@ -132,6 +133,11 @@ impl FileDb {
             }
         };
 
+        // Make sure the file doesnt exist if the transaction fails.
+        let defer = guard(self.store.path(file_id), |path| {
+            tokio::spawn(fs::remove_file(path));
+        });
+
         let file_size = self.store.put(file_id, content).await?;
         let file_size_db: i64 = file_size.try_into().context("invalid file size")?;
 
@@ -156,6 +162,9 @@ impl FileDb {
         .await?;
 
         tx.commit().await?;
+
+        // Cancel the deferred function.
+        ScopeGuard::into_inner(defer);
 
         Ok(FileInfo {
             file_id,
@@ -204,6 +213,7 @@ impl FileDb {
 }
 
 /// Responsible for keeping track of file contents.
+#[derive(Clone)]
 pub struct FileStore {
     root: PathBuf,
 }
@@ -217,8 +227,13 @@ impl FileStore {
         Ok(Self { root })
     }
 
+    /// Get the path a file would be stored at. Also works for files that do not exists.
+    fn path(&self, id: FileId) -> PathBuf {
+        self.root.join(id.to_string())
+    }
+
     pub async fn get(&self, id: FileId) -> anyhow::Result<Option<impl AsyncRead>> {
-        let path = self.root.join(id.to_string());
+        let path = self.path(id);
         let file = match fs::File::open(path).await {
             Ok(file) => file,
             Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
@@ -229,7 +244,12 @@ impl FileStore {
 
     /// Writes a file to the file store, returning how many bytes were written.
     pub async fn put(&self, id: FileId, data: impl AsyncRead) -> anyhow::Result<u64> {
-        let path = self.root.join(id.to_string());
+        let path = self.path(id);
+
+        // Clean up the file if an error occurs.
+        let defer = guard(path.clone(), |path| {
+            tokio::spawn(fs::remove_file(path));
+        });
 
         let mut file = fs::File::create(path)
             .await
@@ -239,12 +259,15 @@ impl FileStore {
         let size = tokio::io::copy(&mut pinned_data, &mut file)
             .await
             .context("while writing to file")?;
+
+        // Cancel the deferred function.
+        ScopeGuard::into_inner(defer);
         Ok(size)
     }
 
     /// Permanently remove a file from the file store.
     pub async fn remove(&self, id: FileId) -> anyhow::Result<()> {
-        let path = self.root.join(id.to_string());
+        let path = self.path(id);
         fs::remove_file(path)
             .await
             .context("could not remove file")?;

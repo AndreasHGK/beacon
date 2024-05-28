@@ -17,6 +17,7 @@ http = "1.0.0"
 num-traits = "0.2.19"
 rand = "0.8.5"
 rsa = "0.9.6"
+scopeguard = "1.2.0"
 serde = "1.0.197"
 serde_json = "1.0.117"
 sqlx = { version = "0.7.4", features = ["chrono", "postgres", "runtime-tokio", "uuid", "bigdecimal"] }
