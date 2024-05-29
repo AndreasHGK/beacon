@@ -5,6 +5,7 @@ mod config;
 use std::{
     io,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use anyhow::{anyhow, Context};
@@ -13,6 +14,7 @@ use auth::{create_session, get_private_key};
 use clap::Parser;
 use config::Config;
 use flate2::{write::GzEncoder, Compression};
+use indicatif::ProgressBar;
 use reqwest::{Body, StatusCode};
 use ssh_key::PrivateKey;
 use tokio::{
@@ -33,6 +35,8 @@ struct Command {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    let cli_theme = dialoguer::theme::ColorfulTheme::default();
+
     let config = Config::read().await?;
     // let config = Config::read().await.context("could not read config")?;
     let command = Command::parse();
@@ -60,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Determine the name of the file to be uploaded.
-    let file_name = if command.files.len() == 1 {
+    let mut file_name = if command.files.len() == 1 {
         let mut file_name = file
             .file_name()
             .and_then(|v| v.to_str())
@@ -73,6 +77,17 @@ async fn main() -> anyhow::Result<()> {
     } else {
         "files.tar.gz".to_string()
     };
+
+    let default_settings = dialoguer::Confirm::with_theme(&cli_theme)
+        .with_prompt("Do you want to use the default settings?")
+        .interact()?;
+
+    if !default_settings {
+        file_name = dialoguer::Input::with_theme(&cli_theme)
+            .with_prompt("What name should the uploaded file have?")
+            .default(file_name)
+            .interact_text()?;
+    }
 
     let (mut writer, reader) = byte_stream::byte_stream(4096);
 
@@ -130,9 +145,11 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("could not create session")?;
 
+    let progress = ProgressBar::new_spinner().with_message("Uploading file");
+    progress.enable_steady_tick(Duration::from_millis(100));
+
     // Upload the file while it is being written.
     let upload_task: JoinHandle<anyhow::Result<_>> = tokio::spawn(async move {
-        println!("Uploading file...");
         let resp = client
             .post(format!("{}/api/files", config.host))
             .header("file_name", file_name)
@@ -149,8 +166,9 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
         let url = resp.text().await.context("could not read response")?;
+        progress.finish_with_message("File has been uploaded!");
         println!(
-            "File was uploaded successfully!\nUse the following link to share it: {} (copied to clipboard)",
+            "Use the following link to share it: {} (copied to clipboard)",
             &url
         );
 
