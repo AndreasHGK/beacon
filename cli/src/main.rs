@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Context};
+use arboard::{Clipboard, SetExtLinux};
 use auth::{create_session, get_private_key};
 use clap::Parser;
 use config::Config;
@@ -147,10 +148,19 @@ async fn main() -> anyhow::Result<()> {
             );
             return Ok(());
         }
+        let url = resp.text().await.context("could not read response")?;
         println!(
-            "File was uploaded successfully!\nUse the following link to share it: {}",
-            resp.text().await.context("could not read response")?
+            "File was uploaded successfully!\nUse the following link to share it: {} (copied to clipboard)",
+            &url
         );
+
+        let mut clipboard = Clipboard::new().context("failed to get clipboard")?;
+        let mut set = clipboard.set();
+        if cfg!(unix) {
+            println!("Detected you are on linux. This application will keep running to persist the clipboard.");
+            set = set.wait();
+        }
+        set.text(url).context("could not write to clipboard")?;
         Ok(())
     });
 

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.80"
+arboard = { version = "3.4.0", features = ["wayland-data-control"] }
 clap = { version = "4.4.7", features = ["derive"] }
 flate2 = "1.0.28"
 homedir = "0.2.1"
