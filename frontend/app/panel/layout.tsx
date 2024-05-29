@@ -40,6 +40,7 @@ export default async function RootLayout({
           {isAdmin ? (
             <NavGroup title="Admin">
               <NavItem href="/panel/admin/users" content="Users" />
+              <NavItem href="/panel/admin/invites" content="Invites" />
             </NavGroup>
           ) : (
             <></>

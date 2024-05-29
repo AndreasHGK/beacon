@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                update invites\n                    set times_used = times_used + 1\n                    where invite=$1 and times_used<max_uses and valid_until>=now()\n                    returning invite\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invite",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d1e6dcadce222603f7a2d7fd02861fd554174b2e93adf17c0e590486192e4866"
+}

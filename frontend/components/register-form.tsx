@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -44,6 +45,7 @@ const formSchema = z
       .max(80, {
         message: "Password must be at most 80 characters",
       }),
+    invite_code: z.string().optional(),
   })
   .refine((data) => data.password === data.verifyPassword, {
     message: "Passwords did not match",
@@ -75,7 +77,7 @@ type RegisterState =
   | { type: "submitting" }
   | { type: "error"; message: string }
 
-export function RegisterForm() {
+export function RegisterForm(props: { require_invite_code?: boolean }) {
   const router = useRouter()
   const [registerState, setRegisterState] = useState<RegisterState>({
     type: "idle",
@@ -138,6 +140,32 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
+        {props.require_invite_code ? (
+          <FormField
+            control={form.control}
+            name="invite_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Invite Code</FormLabel>
+                <FormControl>
+                  <Input
+                    spellCheck="false"
+                    autoCapitalize="none"
+                    placeholder="an invite code"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  In order to be able to create an account, you must receive an
+                  invite code from an instance admin.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <></>
+        )}
         <FormField
           control={form.control}
           name="password"

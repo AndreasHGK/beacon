@@ -67,6 +67,8 @@ export function ChangeUsernameForm(props: { userId: string }) {
   const router = useRouter()
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setFormState({ type: "submitting" })
+
     const resp = await fetch(`/api/users/${props.userId}/username`, {
       method: "PUT",
       headers: {

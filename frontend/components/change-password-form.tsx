@@ -60,6 +60,8 @@ export function ChangePasswordForm(props: { userId: string }) {
   const router = useRouter()
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setFormState({ type: "submitting" })
+
     const resp = await fetch(`/api/users/${props.userId}/password`, {
       method: "PUT",
       headers: {

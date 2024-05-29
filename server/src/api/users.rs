@@ -74,6 +74,7 @@ async fn handle_get(auth: Authentication, State(db): State<PgPool>) -> error::Re
 struct CreateUser {
     username: String,
     password: String,
+    invite_code: Option<String>,
 }
 
 async fn handle_post(
@@ -124,6 +125,42 @@ async fn handle_post(
     .fetch_one(&mut *tx)
     .await
     .context("failed to create user in database")?;
+
+    // If the user provided an invite code, check this invite code and use it.
+    if let Some(invite_code) = request.invite_code {
+        let invite_row = sqlx::query!(
+            r#"
+                update invites
+                    set times_used = times_used + 1
+                    where invite=$1 and times_used<max_uses and valid_until>=now()
+                    returning invite
+            "#,
+            invite_code,
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let Some(invite_row) = invite_row else {
+            tx.rollback().await?;
+            return Ok((StatusCode::FORBIDDEN, "Unknown or expired invite code").into_response());
+        };
+
+        sqlx::query!(
+            "update users set invite_used=$2 where user_id=$1",
+            row.user_id,
+            invite_row.invite,
+        )
+        .execute(&mut *tx)
+        .await?;
+    } else if !config.public_config.disable_invite_codes {
+        // Don't allow singing up without a valid invite code if invite codes are enabled.
+        tx.rollback().await?;
+        return Ok((
+            StatusCode::FORBIDDEN,
+            "You must provide an invite code in order to register",
+        )
+            .into_response());
+    }
 
     // The user has been created, now make a session for the user.
     let session = create_session(&mut tx, row.user_id, Duration::weeks(2))

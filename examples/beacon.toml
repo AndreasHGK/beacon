@@ -2,5 +2,11 @@
 ## Example server configuration
 ## ============================
 
-# Set to true to enable *anyone* to create an account.
-allow_registering = false
+# Disables user registering completely if set to false.
+allow_registering = true
+
+# If set to false, users will require an invite code to create an account.
+#
+# WARNING: anyone can create an account if registering is enabled and this is set to true,
+# essentially making this a public instance.
+disable_invite_codes = false

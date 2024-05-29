@@ -14,8 +14,11 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct PublicConfig {
     /// Allows new accounts to be registered on the site.
-    #[serde(default)]
+    #[serde(default = "defaults::bool_true")]
     pub allow_registering: bool,
+    /// If set to false, users need an invite code in order to register.
+    #[serde(default)]
+    pub disable_invite_codes: bool,
 }
 
 impl Config {
@@ -31,5 +34,11 @@ impl Config {
         };
 
         Ok(toml::from_str(&config_str)?)
+    }
+}
+
+pub(super) mod defaults {
+    pub(super) fn bool_true() -> bool {
+        true
     }
 }
