@@ -12,6 +12,7 @@ use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
 use serde::Deserialize;
 use sqlx::PgPool;
 use ssh_key::{Fingerprint, PublicKey};
+use tracing::warn;
 
 use crate::{auth::ssh::SSHAuthState, error, state::AppState};
 
@@ -42,6 +43,7 @@ async fn handle_post(
     .fetch_optional(&db)
     .await?
     else {
+        warn!("Unknown user or public key");
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     };
 
@@ -64,11 +66,12 @@ async fn handle_post(
             )?
         }
         _ => {
+            warn!("Use of unsupported SSH key algorithm");
             return Ok((
                 StatusCode::UNPROCESSABLE_ENTITY,
                 "SSH key algorithm not supported",
             )
-                .into_response())
+                .into_response());
         }
     };
 

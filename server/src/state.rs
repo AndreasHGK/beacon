@@ -3,7 +3,10 @@ use std::sync::Arc;
 use axum::extract::FromRef;
 use sqlx::PgPool;
 
-use crate::{auth::ssh::SSHAuthState, config::Config};
+use crate::{
+    auth::{ssh::SSHAuthState, UserAuthFailures},
+    config::Config,
+};
 
 use super::file::FileDb;
 
@@ -14,4 +17,5 @@ pub struct AppState {
     pub file_store: Arc<FileDb>,
     pub ssh_auth: Arc<SSHAuthState>,
     pub config: Arc<Config>,
+    pub auth_failures: Arc<UserAuthFailures>,
 }

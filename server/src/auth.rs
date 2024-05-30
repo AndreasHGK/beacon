@@ -1,5 +1,7 @@
 pub mod ssh;
 
+use std::collections::HashMap;
+
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -7,6 +9,7 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use sqlx::PgPool;
+use tokio::sync::Mutex;
 use tracing::{debug, error, trace, warn};
 use uuid::Uuid;
 
@@ -75,4 +78,10 @@ where
             is_admin: row.is_admin,
         })
     }
+}
+
+#[derive(Default)]
+pub struct UserAuthFailures {
+    /// Maps users to the amount of authentication failures and the last time a failure happened.
+    pub users: Mutex<HashMap<Uuid, (u16, tokio::time::Instant)>>,
 }

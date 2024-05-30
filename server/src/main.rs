@@ -68,6 +68,7 @@ pub async fn main() -> anyhow::Result<()> {
         file_store: Arc::new(file_db),
         ssh_auth: SSHAuthState::init(),
         config: Arc::new(config),
+        auth_failures: Arc::new(Default::default()),
     };
 
     let app = Router::new()

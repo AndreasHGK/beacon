@@ -10,6 +10,7 @@ use chrono::Duration;
 use http::StatusCode;
 use sqlx::PgPool;
 use tower_cookies::Cookies;
+use tracing::warn;
 
 use crate::{
     auth::ssh::{SSHAuthState, Ticket},
@@ -29,6 +30,7 @@ async fn handle_post(
     Json(ticket): Json<Ticket>,
 ) -> error::Result<Response> {
     let Some((user, fingerprint)) = ssh.validate_response_ticket(ticket).await else {
+        warn!("User supplied an unknown ticket");
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     };
 
@@ -45,6 +47,7 @@ async fn handle_post(
     // Reject the user if the above is not true.
     if !row.exists.unwrap_or(false) {
         tx.commit().await?;
+        warn!("User or user SSH key has been removed since ssh auth step 1");
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
