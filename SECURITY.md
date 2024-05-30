@@ -82,6 +82,7 @@ The password of this account should be changed immediately when deploying.
 - Account enumeration is made difficult by the use of random UUIDs.
 - Only secure SSH key algorithms are supported.
 - Login takes longer on each failure.
+- Sessions are deleted on logout.
 
 ### Software and Data Integrity Failures
 

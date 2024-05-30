@@ -1,6 +1,7 @@
 import { Dashboard } from "@/components/dashboard"
 import { Password } from "./password"
 import { SSHKeys } from "./ssh-keys"
+import { Logout } from "./logout"
 
 export default async function Security() {
   return (
@@ -11,6 +12,7 @@ export default async function Security() {
       </Dashboard.Header>
       <Password />
       <SSHKeys />
+      <Logout />
     </Dashboard.Page>
   )
 }

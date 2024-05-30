@@ -28,6 +28,7 @@ pub struct SessionInfo {
 ///
 /// The token is 256 bits. 128 bits is the minimum recommended by OWASP:
 /// <https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-length>
+#[derive(Clone, Debug)]
 pub struct SessionToken([u8; 32]);
 
 impl SessionToken {
@@ -109,6 +110,12 @@ pub fn store_session(cookies: &Cookies, session: &SessionInfo) -> anyhow::Result
     cookie.set_same_site(None);
     cookies.add(cookie);
     Ok(())
+}
+
+/// Remove a session from a user's cookies.
+pub fn remove_session(cookies: &Cookies) {
+    cookies.remove(Cookie::new("session-token", ""));
+    cookies.remove(Cookie::new("session-uuid", ""));
 }
 
 impl Display for SessionToken {

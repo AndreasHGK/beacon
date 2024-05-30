@@ -25,6 +25,8 @@ pub struct Authentication {
     pub username: String,
     /// True if the user has admininistrator permissions.
     pub is_admin: bool,
+    /// The token used to authenticate.
+    pub token: SessionToken,
 }
 
 #[async_trait]
@@ -76,6 +78,7 @@ where
             user_id: row.user_id,
             username: row.username,
             is_admin: row.is_admin,
+            token,
         })
     }
 }
