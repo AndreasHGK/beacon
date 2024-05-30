@@ -50,7 +50,7 @@ async fn handle_post(
     info!(?auth.user_id, ?file.file_name, ?file.file_size, "A file was uploaded");
     Ok(format!(
         "{}/files/{}/{}",
-        env::var("EXTERNAL_URL").unwrap(), // todo: store in config
+        env::var("EXTERNAL_URL").unwrap(),
         file.file_id,
         file.file_name,
     )
