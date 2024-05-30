@@ -45,32 +45,32 @@ async fn main() -> anyhow::Result<()> {
         return Err(anyhow!("please provide at least one file to share"));
     }
 
-    if command.files.len() > 1 {
-        return Err(anyhow!(
-            "uploading more than one file is currently not supported"
-        ));
-    }
+    // Determine if we are uploading a single non-directory file. This is used to determine whether
+    // to archieve the input files or not.
+    let is_single_file = if command.files.len() == 1 {
+        let is_dir = match fs::metadata(&command.files[0])
+            .await
+            .context("trying to read file")?
+            .file_type()
+        {
+            e if e.is_dir() => true,
+            e if e.is_file() => false,
+            other => return Err(anyhow!("unsupported file type: {other:?}")),
+        };
 
-    // todo: support uploading of multiple files at once
-    let file = command.files[0].clone();
-    let is_dir = match fs::metadata(&file)
-        .await
-        .context("trying to read file")?
-        .file_type()
-    {
-        e if e.is_dir() => true,
-        e if e.is_file() => false,
-        other => return Err(anyhow!("unsupported file type: {other:?}")),
+        !is_dir
+    } else {
+        false
     };
 
     // Determine the name of the file to be uploaded.
     let mut file_name = if command.files.len() == 1 {
-        let mut file_name = file
+        let mut file_name = command.files[0]
             .file_name()
             .and_then(|v| v.to_str())
             .unwrap_or("file")
             .to_string();
-        if is_dir {
+        if !is_single_file {
             file_name += ".tar.gz";
         }
         file_name
@@ -95,15 +95,34 @@ async fn main() -> anyhow::Result<()> {
     let write_task = task::spawn_blocking(move || -> anyhow::Result<()> {
         use std::fs;
 
-        if is_dir {
+        if !is_single_file {
             let enc = GzEncoder::new(writer, Compression::default());
             let mut archive = tar::Builder::new(enc);
-            archive
-                .append_dir_all(".", file.clone())
-                .context("could not add directory to archive")?;
+
+            for file in command.files {
+                let is_dir = std::fs::metadata(&file)
+                    .context("could not get metadata for file")?
+                    .is_dir();
+
+                let file_name = Path::new(
+                    file.file_name()
+                        .and_then(|v| v.to_str())
+                        .unwrap_or("unnamed"),
+                );
+                if is_dir {
+                    archive
+                        .append_dir_all(file_name, file.clone())
+                        .context("could not add directory to archive")?;
+                } else {
+                    archive
+                        .append_path_with_name(file.clone(), file_name)
+                        .context("could not add directory to archive")?;
+                }
+            }
             archive.into_inner()?.try_finish()?;
         } else {
-            let mut reader = fs::File::open(file).context("could not open file for reading")?;
+            let mut reader =
+                fs::File::open(&command.files[0]).context("could not open file for reading")?;
             io::copy(&mut reader, &mut writer)?;
         }
         Ok(())
