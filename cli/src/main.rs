@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Context};
-use arboard::{Clipboard, SetExtLinux};
+use arboard::Clipboard;
 use auth::{create_session, get_private_key};
 use clap::Parser;
 use config::Config;
@@ -192,8 +192,11 @@ async fn main() -> anyhow::Result<()> {
         );
 
         let mut clipboard = Clipboard::new().context("failed to get clipboard")?;
+        #[allow(unused_mut)]
         let mut set = clipboard.set();
-        if cfg!(unix) {
+        #[cfg(target_os = "linux")]
+        {
+            use arboard::SetExtLinux;
             println!("Detected you are on linux. This application will keep running to persist the clipboard.");
             set = set.wait();
         }

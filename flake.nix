@@ -52,8 +52,11 @@
                 pkg-config
                 # SSL support.
                 openssl
-              ] ++ lib.optionals pkgs.stdenv.isDarwin
-              [ darwin.apple_sdk.frameworks.SystemConfiguration ];
+              ] ++ lib.optionals pkgs.stdenv.isDarwin [
+                darwin.apple_sdk.frameworks.AppKit
+                darwin.apple_sdk.frameworks.CoreGraphics
+                darwin.apple_sdk.frameworks.SystemConfiguration
+              ];
           };
         };
 
